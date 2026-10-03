@@ -16,7 +16,7 @@
  * chosen before sending, and everything except approval mode is locked once the Session is
  * created. The Session list and the new-chat entry point live in the global sidebar.
  */
-import { adoptBrowserSession } from "../builtin-browser/browser-actions";
+import { adoptBrowserSession } from "../builtin-browser";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
@@ -58,7 +58,7 @@ import { switchDeskModel } from "../company/desk-model";
 import { useCompany } from "../../state/company";
 import { ApiError } from "../../api/client";
 import { S } from "../../lib/strings";
-import { useWorkbenchTabs, WorkbenchFrame, WorkbenchTabStrip } from "../workbenches/workbench-tabs";
+import { useWorkbenchTabs, WorkbenchFrame, WorkbenchTabStrip } from "../workbenches";
 import { apiErrorText } from "../../lib/api-error";
 import type { PermissionPick } from "../../lib/permission-level";
 import { configuredCompactionLimit } from "../../lib/context";
@@ -78,7 +78,6 @@ import {
   finalizeHistory,
   pushMessage,
 } from "../../lib/omni/stream-model";
-import type { StreamModel } from "../../lib/omni/stream-model";
 import { aggregateMemoryChanges, sameMemoryChanges } from "../../lib/omni/memory-changes";
 import type { MemoryLocateTarget } from "../../lib/omni/memory-changes";
 import { bucketCostUsd } from "../../lib/omni/task-stats";
@@ -131,7 +130,7 @@ import { handoffMessage, modelSwitchMessage } from "./agent-handoff";
 import { modelLabel } from "./model-select";
 import { sessionModelPickerDisabled, sessionRowStale, switchContextShape } from "./model-switch";
 import type { SwitchContextShape } from "./model-switch";
-import { hasConfiguredKey, sameModelRef, turnPricing } from "../models/model-grouping";
+import { hasConfiguredKey, sameModelRef, turnPricing } from "../models";
 import { providerInfo } from "@prismshadow/penguin-core/model-catalog";
 import { useMemoryListing } from "./use-memory-listing";
 import { useMachineModels } from "../../lib/machine-models";

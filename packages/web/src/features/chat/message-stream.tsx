@@ -33,7 +33,7 @@ import type { PendingApproval } from "./use-session-stream";
 import { MessageItem } from "./message-item";
 import { parseUserMessageBody } from "./user-message-body";
 import { interactiveReplyIndex } from "./a2ui-reply";
-import { WorkspaceLinksProvider } from "./workspace-links";
+import { WorkspaceLinksProvider } from "../workspace";
 import { SessionWorkGroup, isWorkItem } from "./work-group";
 import { createStreamFollow, stickToBottom, type StreamFollow } from "./stream-follow";
 

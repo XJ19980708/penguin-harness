@@ -18,8 +18,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import type { MouseEvent } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MessageStream, type StreamRenderContext } from "../src/features/chat/message-stream";
-
+import { MessageStream } from "../src/features/chat/message-stream";
+import type { StreamRenderContext } from "../src/features/chat/message-stream";
 import type { ChatItem } from "../src/lib/omni/stream-model";
 import type { LinkBehavior } from "../src/lib/reply-link";
 import { S, setActiveStrings, zh } from "../src/lib/strings";

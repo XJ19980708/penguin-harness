@@ -58,13 +58,13 @@ import { toastError } from "@prismshadow/penguin-ui";
 import { AgentSelect } from "../agents";
 import * as api from "../../api/endpoints";
 import { S } from "../../lib/strings";
-import { UNCONFINED, draftSandboxAfter, type PermissionPick } from "../../lib/permission-level";
-
+import { UNCONFINED, draftSandboxAfter } from "../../lib/permission-level";
+import type { PermissionPick } from "../../lib/permission-level";
 import { apiErrorText } from "../../lib/api-error";
 import { rememberSessionMachine } from "../../lib/session-machines";
 import { cachedMachineAgents, rememberMachineAgents } from "../../lib/machine-cache";
-import { machineLink, remoteAgentsEmpty, type MachineLink } from "../../lib/machine-link";
-
+import { machineLink, remoteAgentsEmpty } from "../../lib/machine-link";
+import type { MachineLink } from "../../lib/machine-link";
 import { useMachines } from "../../state/machines";
 import { useAuth } from "../../state/auth";
 import { useProject } from "../../state/project";
@@ -73,10 +73,9 @@ import { ChatInput } from "./chat-input";
 import type { ComposerControl } from "./chat-input";
 import { APPROVAL_MODES } from "./approval-mode";
 import { adoptDockScope, setDockCwd } from "../dock";
-
 import { StartDashboard } from "./start-dashboard";
-import { clearDraft, draftKey, loadDraft, saveDraft, type DraftCache } from "./draft-cache";
-
+import { clearDraft, draftKey, loadDraft, saveDraft } from "./draft-cache";
+import type { DraftCache } from "./draft-cache";
 import {
   DRAFT_FLUSH_EVENT,
   getDraftSession,

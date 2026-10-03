@@ -17,9 +17,8 @@ import {
   MODEL_PROVIDERS,
   PENGUIN_GO_PROVIDER_ID,
   isAddableGroup,
-  type ModelProviderInfo,
 } from "@prismshadow/penguin-core/model-catalog";
-
+import type { ModelProviderInfo } from "@prismshadow/penguin-core/model-catalog";
 import type { ProviderConnectionDto } from "@prismshadow/penguin-server/api";
 
 /**

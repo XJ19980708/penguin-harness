@@ -7,17 +7,8 @@
  * own context menu (Copy / Add to conversation; open the link or copy its address — see
  * stream-selection-menu.tsx).
  */
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentProps,
-  type ReactNode,
-  type RefObject,
-} from "react";
-
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { ComponentProps, ReactNode, RefObject } from "react";
 import {
   A2uiActionsProvider,
   EmptyState,
@@ -35,8 +26,8 @@ import { parseUserMessageBody } from "./user-message-body";
 import { interactiveReplyIndex } from "./a2ui-reply";
 import { WorkspaceLinksProvider } from "./workspace-links";
 import { SessionWorkGroup, isWorkItem } from "./work-group";
-import { createStreamFollow, stickToBottom, type StreamFollow } from "./stream-follow";
-
+import { createStreamFollow, stickToBottom } from "./stream-follow";
+import type { StreamFollow } from "./stream-follow";
 import type { ForkTarget } from "./task-stats-line";
 import { useStreamSelectionMenu } from "./stream-selection-menu";
 import type { ComposerReference } from "../../lib/workspace-tree";

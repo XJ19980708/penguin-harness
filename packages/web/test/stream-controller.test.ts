@@ -32,10 +32,8 @@ import {
   toolCallOutput,
   userText,
   withOrigin,
-  type OmniMessage,
-  type TokenCounts,
 } from "@prismshadow/penguin-core/omnimessage";
-
+import type { OmniMessage, TokenCounts } from "@prismshadow/penguin-core/omnimessage";
 import type {
   MessagesLiveTail,
   MessagesPageInfo,

@@ -12,17 +12,9 @@ import { EmptyState, ICONS } from "@prismshadow/penguin-ui";
 import { S } from "../../lib/strings";
 import { machineForSession } from "../../lib/session-machines";
 import { NAV_ICONS } from "../../lib/nav-icons";
-import {
-  dockPanelDefinition,
-  panelLabel,
-  registerDockPanel,
-  type DockPanelBodyProps,
-  type DockPanelDefinition,
-  type PanelId,
-} from "../dock";
-
+import { dockPanelDefinition, panelLabel, registerDockPanel } from "../dock";
+import type { DockPanelBodyProps, DockPanelDefinition, PanelId } from "../dock";
 import { isBrowserOffered, subscribeBrowser, BuiltinBrowserPanel } from "../builtin-browser";
-
 import { TracePanel } from "../traces";
 import { MessagingPanel } from "../messaging";
 import { SchedulePanel } from "../schedules";

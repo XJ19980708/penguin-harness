@@ -52,12 +52,8 @@ import {
   useFormDraft,
   useGuardedClose,
 } from "@prismshadow/penguin-ui";
-import {
-  fixedClientType,
-  providerEnvFallbackKey,
-  type ModelProviderInfo,
-} from "@prismshadow/penguin-core/model-catalog";
-
+import { fixedClientType, providerEnvFallbackKey } from "@prismshadow/penguin-core/model-catalog";
+import type { ModelProviderInfo } from "@prismshadow/penguin-core/model-catalog";
 import * as api from "../../api/endpoints";
 import { apiErrorText } from "../../lib/api-error";
 import { formatDateTime } from "../../lib/format";
@@ -71,9 +67,8 @@ import {
   isCustomLikeGroup,
   isGenericProtocolClientType,
   protocolSelectorValue,
-  type ProtocolClientType,
 } from "./protocol-types";
-
+import type { ProtocolClientType } from "./protocol-types";
 import type { RowState } from "./models-page";
 
 /** A group's row as this dialog reads it: what it stores of its own. */

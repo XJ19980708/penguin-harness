@@ -23,11 +23,13 @@ const OrgProposalsPage = () => null;
  *   balance on their anchors, and company's unread count on the contributed proposals page's row;
  *   the session list receives the messaging binding, the scheduled mark and the dock's "Browse
  *   files".
- * - The dock receives the seven panels in their menu order — agents and memory from chat, the
- *   files from workspace, the trace, messaging, schedules and the built-in browser from theirs —
- *   with the names the dictionary held and a glyph in the icon registry; the panel table reaches
- *   the docks as the innermost provider of the signed-in session.
+ * - The dock receives the eight panels in their menu order — agents and memory from chat, the
+ *   files from workspace, the trace, messaging, schedules, the built-in browser and the ports from
+ *   theirs — with the names the dictionary held and a glyph in the icon registry, which the dock
+ *   module registers in its panel registry at boot.
+ * - The chat page receives the workflow tab strip beside the conversation.
  */
+import type { ReactElement } from "react";
 import {
   bootModules,
   moduleDefOf,
@@ -89,6 +91,9 @@ import { MessagingDockPanel } from "../src/features/messaging/messaging-dock-pan
 import { ScheduleDockPanel } from "../src/features/schedules/schedule-dock-panel";
 import { BuiltinBrowserModule } from "../src/features/builtin-browser/module";
 import type { DockPanelData } from "../src/features/dock/iface";
+import { ChatModule } from "../src/features/chat/module";
+import { sessionTabsOf } from "../src/features/chat/deps";
+import { WorkbenchSessionTab } from "../src/features/workbenches/session-tab";
 
 let pages: readonly WebAppPage[] = [];
 let sessionProviders: readonly Contributed[] = [];
@@ -98,15 +103,16 @@ let sidebarSlots: Readonly<Record<string, readonly Contributed[]>> = {};
 let rows: RowExtensions | null = null;
 let sessionListSection: unknown = null;
 let dockPanels: readonly Contributed[] = [];
+let sessionTabs: readonly Contributed[] = [];
 
 /** A slot's code halves in the order the shell mounts them. */
 const codeByOrder = (list: readonly Contributed[]): unknown[] =>
   [...list].sort((a, b) => (a.data.order as number) - (b.data.order as number)).map((c) => c.code);
 
 /**
- * Boots the real tree as bootWeb does, with the shell, the sidebar, the session list and the dock
- * standing in by doubles that keep their slots' contributions instead of binding them into components
- * (which need a browser to render).
+ * Boots the real tree as bootWeb does, with the shell, the sidebar, the session list, the dock and
+ * the chat page standing in by doubles that keep their slots' contributions instead of binding
+ * them into components (which need a browser to render).
  */
 beforeAll(async () => {
   const webApp = Object.assign(new WebAppModule(), {
@@ -142,6 +148,12 @@ beforeAll(async () => {
       dock.dock = {};
     },
   });
+  const chat = Object.assign(new ChatModule(), {
+    setup(ctx: ClassCtx) {
+      sessionTabs = ctx.contributions.sessionTabs ?? [];
+      ChatModule.prototype.setup.call(chat, ctx);
+    },
+  });
   await bootModules(
     moduleDefOf(WebRoot, {
       manifests: table.modules as unknown as ManifestTable,
@@ -150,6 +162,7 @@ beforeAll(async () => {
         [SidebarModule, sidebar],
         [SessionListModule, sessionList],
         [DockModule, dock],
+        [ChatModule, chat],
       ]),
     }),
     {
@@ -247,7 +260,6 @@ describe("the booted page table", () => {
       },
     ];
     const orgRenderers = new Set(["OrgProposalsPage"]);
-    // Old builtin proposals renderer is split out; iframe org pages still use the framework.
     expect(orgPagesOf(contributedPages(pages, remote, orgRenderers)).map((p) => p.key)).toEqual([
       "org-proposals",
     ]);
@@ -324,7 +336,7 @@ describe("the booted sidebar slots", () => {
 });
 
 describe("the booted dock slot", () => {
-  it("the dock receives the seven panels, in their order, each from its module", () => {
+  it("the dock receives the eight panels, in their order, each from its module", () => {
     // In contributed order, as the dock registers them (dock/module.ts).
     const panels = [...dockPanels]
       .map((c) => ({ ...(c.data as unknown as DockPanelData), Body: c.code }))
@@ -387,5 +399,12 @@ describe("the booted dock slot", () => {
       schedules: "SchedulesModule",
       "builtin-browser": "BuiltinBrowserModule",
     });
+  });
+});
+
+describe("the booted chat slot", () => {
+  it("the chat page receives the workflow tab strip", () => {
+    expect(sessionTabsOf(sessionTabs).map(({ Tab }) => Tab)).toEqual([WorkbenchSessionTab]);
+    expect(sessionTabs.map((c) => c.from)).toEqual(["WorkbenchesModule"]);
   });
 });

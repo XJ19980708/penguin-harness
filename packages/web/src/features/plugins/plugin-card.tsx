@@ -26,8 +26,8 @@
  * a zip another server imports, for any member whenever its package is on this server — and,
  * for an admin, Delete on a package an admin installed on the server.
  */
-import { useId, useState } from "react";
-import type { ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
+
 import type { AgentSummary, PluginItem, QuickStartItem } from "@prismshadow/penguin-server/api";
 import {
   AgentAvatar,

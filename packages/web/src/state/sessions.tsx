@@ -52,8 +52,9 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
-import type { ReactNode } from "react";
+
 import type {
   ServerEvent,
   SessionBackgroundTasks,
@@ -98,6 +99,8 @@ import {
   workspaceGroupKey,
   workspaceGroupMachine,
   workspaceGroupQuery,
+  type ActivityKey,
+  type StreamPosition,
 } from "../lib/session-grouping";
 import type { ActivityKey, StreamPosition } from "../lib/session-grouping";
 import {

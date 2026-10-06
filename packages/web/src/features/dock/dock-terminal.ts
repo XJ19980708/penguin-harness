@@ -15,6 +15,7 @@ import {
   noteTerminalCreated,
   refreshTerminals,
 } from "../terminal";
+
 import { machineForTerminal, rememberTerminalMachine } from "../../lib/terminal-machines";
 import {
   addTerminalTab,

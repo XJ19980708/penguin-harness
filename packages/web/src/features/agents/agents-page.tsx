@@ -28,8 +28,8 @@
  * out of reach keeps what it was last seen holding on the list, greyed, every control off, with
  * the reason beside the tag and on each control.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+
 import { Link, useLocation, useNavigate } from "react-router";
 import type { AgentSummary } from "@prismshadow/penguin-server/api";
 import {

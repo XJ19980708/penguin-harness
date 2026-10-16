@@ -15,6 +15,8 @@ import type { Auth } from "../mechanisms/identity.js";
 import type { Access } from "../mechanisms/projects.js";
 import type { Errors } from "../mechanisms/observability.js";
 import type { Settings } from "../mechanisms/settings.js";
+import { telemetryRequests } from "../telemetry/http.js";
+import type { Telemetry } from "../mechanisms/telemetry.js";
 
 /** The assembled business surface: one request in, one response (or a decline) out. */
 @Interface()
@@ -47,6 +49,7 @@ export class HttpModule {
   @Use() private readonly errors!: Errors;
   @Use() private readonly settings!: Settings;
   @Use() private readonly access!: Access;
+  @Use() private readonly telemetry?: Telemetry;
   @Provide() http!: Http;
   setup({ contributions }: ClassCtx) {
     const errors = this.errors;
@@ -93,6 +96,8 @@ export class HttpModule {
       }
       return capped.mw(c, next);
     });
+    // Telemetry records both HTTP and socket-entered requests without duplicating request logs.
+    if (this.telemetry !== undefined) app.use("*", telemetryRequests(this.telemetry));
     app.use("/api/*", jsonOnlyWrites);
 
     const routes = [...(contributions.routes ?? [])]

@@ -2,7 +2,7 @@
 # One line per edge, sorted: `importing-file -> imported-file` (paths relative to src/), or
 # This list only shrinks: never add a line; delete each line whose edge your change removes.
 # `cycle: features/a -> features/b` for an edge between two feature directories that lies on a cycle.
-components/layout/app-layout.tsx -> features/builtin-browser/browser-layer.tsx
+components/layout/app-layout.tsx -> features/builtin-browser/index.ts
 components/layout/app-layout.tsx -> features/chat/chat-page.tsx
 components/layout/app-layout.tsx -> features/chat/use-new-chat.ts
 components/layout/app-layout.tsx -> features/company/channel-sidebar.tsx

@@ -1,24 +1,36 @@
 /** Local wallpaper preferences. Image bytes are stored separately so a slider writes only settings. */
 import { createContext, useContext, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import {
+  BACKGROUND_STORAGE_KEYS,
+  DEFAULT_BACKGROUND_SETTINGS,
+  backgroundLayerStyle,
+  isBackgroundImage,
+  readBackground,
+} from "@prismshadow/penguin-ui/boot";
+import type { BackgroundSettings } from "@prismshadow/penguin-ui/boot";
 
-export const BACKGROUND_IMAGE_KEY = "penguin.background.image";
+// The keys, the vocabulary and the reader are the shared package's (`@prismshadow/penguin-ui/boot`):
+// the pre-paint script reads the same store, so a reload paints the image from the first frame.
+export {
+  BACKGROUND_MODES,
+  BACKGROUND_POSITIONS,
+  isBackgroundImage,
+} from "@prismshadow/penguin-ui/boot";
+export type {
+  BackgroundMode,
+  BackgroundPosition,
+  BackgroundSettings,
+} from "@prismshadow/penguin-ui/boot";
+
+export const BACKGROUND_IMAGE_KEY = BACKGROUND_STORAGE_KEYS.image;
+export const BACKGROUND_SETTINGS_KEY = BACKGROUND_STORAGE_KEYS.settings;
+// The presets are the web layer's own: the pre-paint script paints a stored picture, never a
+// bundled texture, so this key stays outside the shared store's vocabulary.
 export const BACKGROUND_PRESET_KEY = "penguin.background.preset";
-export const BACKGROUND_SETTINGS_KEY = "penguin.background.settings";
-export const BACKGROUND_MODES = ["cover", "contain", "tile", "original"] as const;
-export const BACKGROUND_POSITIONS = [
-  "left top",
-  "center top",
-  "right top",
-  "left center",
-  "center center",
-  "right center",
-  "left bottom",
-  "center bottom",
-  "right bottom",
-] as const;
-export type BackgroundMode = (typeof BACKGROUND_MODES)[number];
-export type BackgroundPosition = (typeof BACKGROUND_POSITIONS)[number];
+
+/** The shared defaults, under the name this package's consumers already use. */
+export const BACKGROUND_DEFAULT_SETTINGS = DEFAULT_BACKGROUND_SETTINGS;
 
 /**
  * Bundled textures. Each is a 1600×900 webp with a deliberate alpha channel, so it composites
@@ -53,68 +65,29 @@ export const BACKGROUND_PRESET_SETTINGS: BackgroundSettings = {
   position: "center bottom",
 };
 
-export interface BackgroundSettings {
-  transparency: number;
-  mode: BackgroundMode;
-  position: BackgroundPosition;
-}
-export const BACKGROUND_DEFAULT_SETTINGS: BackgroundSettings = {
-  transparency: 80,
-  mode: "cover",
-  position: "center center",
-};
-
-/** Only locally encoded raster data is allowed into a CSS image value. */
-export function isBackgroundImage(value: unknown): value is string {
-  return (
-    typeof value === "string" && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(value)
-  );
+export function backgroundStyle(image: string | null, settings: BackgroundSettings): CSSProperties {
+  return backgroundLayerStyle(image, settings);
 }
 
-function readBackground(): {
+/** The stored background: the shared reader's image and settings, plus the preset only the web layer knows. */
+function storedBackground(): {
   image: string | null;
   preset: BackgroundPresetId | null;
   settings: BackgroundSettings;
 } {
-  let image: string | null = null;
-  let preset: BackgroundPresetId | null = null;
-  let settings = BACKGROUND_DEFAULT_SETTINGS;
-  try {
-    const storedPreset = localStorage.getItem(BACKGROUND_PRESET_KEY);
-    preset = BACKGROUND_PRESET_IDS.find((id) => id === storedPreset) ?? null;
-    const storedImage = localStorage.getItem(BACKGROUND_IMAGE_KEY);
+  const read = (storage: Pick<Storage, "getItem">) => {
+    const stored = readBackground(storage);
+    const preset =
+      BACKGROUND_PRESET_IDS.find((id) => id === storage.getItem(BACKGROUND_PRESET_KEY)) ?? null;
     // A preset wins over a stale picture: the setters keep the two keys exclusive, so both can
     // only be present if a write was interrupted, and the preset is what the user last chose.
-    if (preset === null && isBackgroundImage(storedImage)) image = storedImage;
-    const stored: unknown = JSON.parse(localStorage.getItem(BACKGROUND_SETTINGS_KEY) ?? "null");
-    if (stored && typeof stored === "object") {
-      const value = stored as Partial<BackgroundSettings>;
-      settings = {
-        transparency:
-          typeof value.transparency === "number" && Number.isFinite(value.transparency)
-            ? Math.min(100, Math.max(0, value.transparency))
-            : BACKGROUND_DEFAULT_SETTINGS.transparency,
-        mode: BACKGROUND_MODES.find((mode) => mode === value.mode) ?? BACKGROUND_DEFAULT_SETTINGS.mode,
-        position:
-          BACKGROUND_POSITIONS.find((position) => position === value.position) ??
-          BACKGROUND_DEFAULT_SETTINGS.position,
-      };
-    }
-  } catch {
-    // Blocked storage or an incomplete settings value must not prevent the app from opening.
-  }
-  return { image, preset, settings };
-}
-
-export function backgroundStyle(image: string | null, settings: BackgroundSettings): CSSProperties {
-  return {
-    backgroundImage: image === null ? "none" : `url("${image}")`,
-    backgroundSize:
-      settings.mode === "tile" || settings.mode === "original" ? "auto" : settings.mode,
-    backgroundRepeat: settings.mode === "tile" ? "repeat" : "no-repeat",
-    backgroundPosition: settings.position,
-    opacity: 1 - settings.transparency / 100,
+    return { image: preset === null ? stored.image : null, preset, settings: stored.settings };
   };
+  try {
+    return read(localStorage);
+  } catch {
+    return read({ getItem: () => null });
+  }
 }
 
 interface BackgroundContextValue {
@@ -129,7 +102,7 @@ interface BackgroundContextValue {
 const BackgroundContext = createContext<BackgroundContextValue | null>(null);
 
 export function BackgroundProvider({ children }: { children: ReactNode }) {
-  const [initial] = useState(readBackground);
+  const [initial] = useState(storedBackground);
   const [image, setImageState] = useState(initial.image);
   const [preset, setPresetState] = useState(initial.preset);
   const [settings, setSettingsState] = useState(initial.settings);

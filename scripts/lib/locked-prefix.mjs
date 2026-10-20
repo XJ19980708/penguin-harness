@@ -103,8 +103,17 @@ export function integrityMismatches(lock, closure, npmLock, ignored = new Set())
     if (ignored.has(name)) continue;
     const id = `${name}@${entry.version}`;
     seen.add(name);
-    if (closure.get(name) !== entry.version) {
-      problems.push(`${id}: not in the locked closure`);
+    const wantVersion = closure.get(name);
+    if (wantVersion !== undefined && wantVersion !== entry.version) {
+      problems.push(`${id}: the locked closure resolves ${wantVersion}`);
+      continue;
+    }
+    // A package outside the closure is still acceptable when pnpm-lock.yaml names this exact
+    // version: `npm install --force` installs every platform's optional native binary regardless
+    // of `TARGET_PLATFORMS`, so the tree is broader than the closure is meant to be. The integrity
+    // below stays the check that catches a real departure.
+    if (wantVersion === undefined && lock.packages[`${name}@${entry.version}`] === undefined) {
+      problems.push(`${id}: pnpm-lock.yaml does not name this version`);
       continue;
     }
     const want = lockedIntegrity(lock, name, entry.version);

@@ -1146,4 +1146,50 @@
   :root[data-theme="modern"][data-accent="slate"].dark {
     --ui-accent: #9ea6b3;
   }
+  /* The seven palettes of theme-texture-kit, carried over as presets so their accent
+     families join Frost's own. Light values are the kit's `--ss-accent` unchanged; dark
+     values lift each by the same rule Frost's presets follow (about +24% lightness), and
+     every pair clears 4.5:1 for its label and 3:1 as a mark. */
+  :root[data-theme="modern"][data-accent="sujian"] {
+    --ui-accent: #4b6f5b;
+  }
+  :root[data-theme="modern"][data-accent="sujian"].dark {
+    --ui-accent: #87ae98;
+  }
+  :root[data-theme="modern"][data-accent="yuanxiu"] {
+    --ui-accent: #577672;
+  }
+  :root[data-theme="modern"][data-accent="yuanxiu"].dark {
+    --ui-accent: #96b2ae;
+  }
+  :root[data-theme="modern"][data-accent="qingchuan"] {
+    --ui-accent: #3b77ad;
+  }
+  :root[data-theme="modern"][data-accent="qingchuan"].dark {
+    --ui-accent: #8bb3d7;
+  }
+  :root[data-theme="modern"][data-accent="qingci"] {
+    --ui-accent: #2e7d70;
+  }
+  :root[data-theme="modern"][data-accent="qingci"].dark {
+    --ui-accent: #61c5b4;
+  }
+  :root[data-theme="modern"][data-accent="meiyan"] {
+    --ui-accent: #7a5c6e;
+  }
+  :root[data-theme="modern"][data-accent="meiyan"].dark {
+    --ui-accent: #b49cab;
+  }
+  :root[data-theme="modern"][data-accent="jianjia"] {
+    --ui-accent: #52765b;
+  }
+  :root[data-theme="modern"][data-accent="jianjia"].dark {
+    --ui-accent: #90b299;
+  }
+  :root[data-theme="modern"][data-accent="canglang"] {
+    --ui-accent: #42758c;
+  }
+  :root[data-theme="modern"][data-accent="canglang"].dark {
+    --ui-accent: #84b1c5;
+  }
 }

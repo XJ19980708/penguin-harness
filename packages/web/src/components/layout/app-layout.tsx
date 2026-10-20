@@ -31,8 +31,9 @@ import { useShortcutTitle } from "../../lib/shortcuts/use-keymap";
 import { latestConversation, withoutOrgSessions } from "../../lib/session-grouping";
 import { navKeysFor } from "../../lib/nav-group-collapse";
 import { navNoteFor, useUpdateBadges } from "../../lib/use-update-badges";
-import { backgroundStyle, useBackground } from "../../state/background";
+import { backgroundStyle, presetImage, useBackground } from "../../state/background";
 import { useAuth } from "../../state/auth";
+import { useTheme } from "../../state/theme";
 import { useProject } from "../../state/project";
 import { useSessions } from "../../state/sessions";
 import { useCompletionNotifications } from "../../state/use-completion-notifications";
@@ -412,12 +413,13 @@ export function AppLayout() {
   }, [collapsed, inCompany, newChat]);
 
   const background = useBackground();
+  const { dark } = useTheme();
+  const wallpaper =
+    background.preset === null ? background.image : presetImage(background.preset, dark);
   return (
     <AppShell
       background={
-        background.image === null
-          ? undefined
-          : backgroundStyle(background.image, background.settings)
+        wallpaper === null ? undefined : backgroundStyle(wallpaper, background.settings)
       }
       navCollapsed={collapsed}
       nav={

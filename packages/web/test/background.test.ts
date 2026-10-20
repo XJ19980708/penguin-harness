@@ -17,9 +17,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { BackgroundControls } from "../src/features/settings/background-controls";
 import {
   BACKGROUND_IMAGE_KEY,
+  BACKGROUND_PRESET_KEY,
   BACKGROUND_SETTINGS_KEY,
   BackgroundProvider,
   backgroundStyle,
+  presetImage,
   useBackground,
 } from "../src/state/background";
 import { S } from "../src/lib/strings";
@@ -29,10 +31,11 @@ import { blockedStorage, stubLocalStorage } from "./helpers/storage";
 const picture = "data:image/png;base64,aW1hZ2U=";
 const nextPicture = "data:image/webp;base64,bmV3aW1hZ2U=";
 function Appearance() {
-  const { image, settings } = useBackground();
+  const { image, preset, settings } = useBackground();
+  const resolved = preset === null ? image : presetImage(preset, false);
   return h(AppShell, {
     nav: "Navigation",
-    background: image === null ? undefined : backgroundStyle(image, settings),
+    background: resolved === null ? undefined : backgroundStyle(resolved, settings),
     children: h(BackgroundControls),
   });
 }
@@ -80,6 +83,27 @@ describe("background choices", () => {
     expect(wallpaper()?.style.backgroundRepeat).toBe("repeat");
     expect(wallpaper()?.style.backgroundPosition).toBe("right bottom");
     expect(field(S.settings.background.transparency).value).toBe("35");
+  });
+
+  it("applies a bundled texture with its own defaults and keeps it after reopening", async () => {
+    const store = stubLocalStorage();
+    const page = await render();
+    await click(button(S.settings.background.presetNames.yuanshan));
+    expect(wallpaper()?.style.backgroundImage).toContain("yuanshan-light.webp");
+    expect(wallpaper()?.style.backgroundSize).toBe("cover");
+    expect(wallpaper()?.style.backgroundPosition).toBe("center bottom");
+    // The texture carries alpha, so the preset starts fainter than a picture's 80%.
+    expect(wallpaper()?.style.opacity).toBe("0.75");
+    expect(store.getItem(BACKGROUND_PRESET_KEY)).toBe("yuanshan");
+    await page.unmount();
+    await render();
+    expect(wallpaper()?.style.backgroundImage).toContain("yuanshan-light.webp");
+    expect(field(S.settings.background.transparency).value).toBe("25");
+  });
+
+  it("pairs each texture with the mode's own artwork", () => {
+    expect(presetImage("yuanshan", false)).toContain("yuanshan-light.webp");
+    expect(presetImage("yuanshan", true)).toContain("yuanshan-dark.webp");
   });
 
   it("restores the plain background and keeps the picture removed on reload", async () => {

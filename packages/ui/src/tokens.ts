@@ -101,8 +101,9 @@ export interface AccentPresetSpec {
  * id, a theme's preset rules match only their own theme, so a preset the active theme does not
  * list paints nothing (the theme's own accent shows, as `neutral` would) and comes back when the
  * user returns to a theme that lists it. Primer keeps the five ids and values the Web App has
- * always had, so nothing there moves; Frost's six are its former forest green and five warm,
- * muted hues (its own accent went black and white on 2026-10-02, as Console's had); Console's six
+ * always had, so nothing there moves; Frost's own six are its former forest green and five warm,
+ * muted hues (its own accent went black and white on 2026-10-02, as Console's had), and seven more
+ * carry over the palettes of theme-texture-kit; Console's six
  * are the orange it shipped with and five terminal hues — its own accent went black and white
  * (2026-09-30), so the orange became a preset.
  */
@@ -121,6 +122,14 @@ export const ACCENT_PRESETS = {
     { id: "plum", swatch: "#7a4d8f" },
     { id: "honey", swatch: "#96660f" },
     { id: "slate", swatch: "#5c6470" },
+    // The seven palettes of theme-texture-kit, in its own order.
+    { id: "sujian", swatch: "#4b6f5b" },
+    { id: "yuanxiu", swatch: "#577672" },
+    { id: "qingchuan", swatch: "#3b77ad" },
+    { id: "qingci", swatch: "#2e7d70" },
+    { id: "meiyan", swatch: "#7a5c6e" },
+    { id: "jianjia", swatch: "#52765b" },
+    { id: "canglang", swatch: "#42758c" },
   ],
   geek: [
     { id: "orange", swatch: "#e32a01" },

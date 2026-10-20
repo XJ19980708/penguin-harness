@@ -194,7 +194,7 @@ export function AppearanceSection() {
           onChange={setAccent}
         />
       </PrefRow>
-      <BackgroundControls />
+      <BackgroundControls dark={dark} />
       <PrefRow label={S.settings.fontSize} info={S.settings.fontSizeInfo}>
         <Segmented options={textSizeOptions} value={textSize} onChange={setTextSize} cols={5} />
       </PrefRow>

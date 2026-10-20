@@ -876,6 +876,15 @@ export const en: Strings = {
         "This image could not be read or is still too large after processing. Choose a smaller image.",
       storageError:
         "Could not save the background. Check this browser's local storage space or permissions.",
+      presets: "Built-in textures",
+      presetsInfo:
+        "Four bundled textures that switch with light and dark; transparency and display stay adjustable.",
+      presetNames: {
+        yuanshan: "Distant peaks",
+        shanshui: "Landscape",
+        pamir: "Pamir Plateau",
+        sayram: "Sayram Lake",
+      },
     },
     themeInfo:
       "The app's overall style: layout, lines, type and motion change with it; content and every other setting stay as they are.",
@@ -954,6 +963,13 @@ export const en: Strings = {
       gold: "Gold",
       cobalt: "Cobalt",
       orange: "Orange",
+      sujian: "Ink green",
+      yuanxiu: "Autumn teal",
+      qingchuan: "Warm sky",
+      qingci: "Celadon",
+      meiyan: "Plum smoke",
+      jianjia: "Reed",
+      canglang: "Frost blue",
     } as Record<string, string>,
   },
 
@@ -2097,6 +2113,9 @@ export const en: Strings = {
       `Detected ${protocol}; base URL normalized to ${url}`,
     /** The ONE failure toast: every mode collapses to it, naming only what the user can act on. */
     detectFailedBody: "Could not detect the protocol. Please check the API key and the base URL.",
+    /** The vision probe failed: not a protocol problem, so it must not point at the key or the URL. */
+    detectVisionFailedBody:
+      "Vision check failed: the model gave nothing to judge on; the switch is left as it was.",
     /** Save-time detection came back empty: the save proceeds on the compatible client. */
     detectFellBack: "Protocol not detected; saved as OpenAI Chat Completions",
     addProtocolHintDetect:

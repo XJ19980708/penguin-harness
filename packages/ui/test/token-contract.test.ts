@@ -217,12 +217,13 @@ describe("the accent presets, per theme (2026-09-19)", () => {
     }
   });
 
-  it("gives every theme its own list (Frost's and Console's have six), with no id shared between two themes", () => {
+  it("gives every theme its own list (Primer 5, Frost 13, Console 6), with no id shared between two themes", () => {
     const all = THEME_IDS.flatMap((id) => THEME_ACCENT_PRESETS[id]);
     expect(all.length).toBe(new Set(all).size);
     // Console's own accent went black and white (2026-09-30) and Frost's followed (2026-10-02);
-    // the hue each had is now its first preset, so their lists are one longer.
-    const listed: Readonly<Record<ThemeId, number>> = { github: 5, modern: 6, geek: 6 };
+    // the hue each had is now its first preset, so their lists are one longer. Frost then took
+    // the seven palettes of theme-texture-kit as presets (2026-10-19).
+    const listed: Readonly<Record<ThemeId, number>> = { github: 5, modern: 13, geek: 6 };
     for (const id of THEME_IDS) expect(THEME_ACCENT_PRESETS[id].length, id).toBe(listed[id]);
     expect(THEME_ACCENT_PRESETS.geek[0]).toBe("orange");
     expect(THEME_ACCENT_PRESETS.modern[0]).toBe("forest");

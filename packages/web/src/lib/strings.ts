@@ -996,6 +996,14 @@ export const zh = {
       fileError: "请选择不超过 20 MB 的 PNG、JPEG 或 WebP 图片。",
       readError: "无法读取这张图片，或处理后仍过大。请换一张较小的图片。",
       storageError: "无法保存背景设置，请检查此浏览器的本地存储空间或权限。",
+      presets: "内置底纹",
+      presetsInfo: "四套随明暗自动切换的内置底纹；选中后仍可单独调整透明度和显示方式。",
+      presetNames: {
+        yuanshan: "远山云鹤",
+        shanshui: "山水",
+        pamir: "帕米尔高原",
+        sayram: "赛里木湖",
+      },
     },
     themeInfo: "应用的整体风格：布局、线条、字体与动效随之改变，内容与其他设置不受影响。",
     /** Display names of the three themes; the ids stay github / modern / geek. */
@@ -1073,6 +1081,13 @@ export const zh = {
       gold: "金",
       cobalt: "钴蓝",
       orange: "橙红",
+      sujian: "素笺墨竹",
+      yuanxiu: "远游秋罗",
+      qingchuan: "晴川暖杏",
+      qingci: "青瓷凝翠",
+      meiyan: "梅烟素绢",
+      jianjia: "蒹葭苍苍",
+      canglang: "沧浪霜华",
     } as Record<string, string>,
   },
 
@@ -2227,6 +2242,8 @@ export const zh = {
       `已检测为 ${protocol}，base URL 已整理为 ${url}`,
     /** The ONE failure toast: 所有失败情形共用，只讲用户能动手改的两件事。 */
     detectFailedBody: "无法检测接口协议，请检查 API Key 与 base URL。",
+    /** 视觉能力探测失败：不是协议问题，别把人引去查 API Key 与 base URL。 */
+    detectVisionFailedBody: "视觉能力检测失败：模型没有返回可判断的结果，开关保持原样。",
     /** 保存时检测无结果：按兼容协议继续保存。 */
     detectFellBack: "未检测到协议，已按 OpenAI Chat Completions 保存",
     /** Add-dialog note for custom / user-defined groups (protocol selectable): replaces the fixed-OpenAI wording. */

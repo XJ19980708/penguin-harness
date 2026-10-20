@@ -900,6 +900,17 @@ function defaultBuiltinTools(): ToolDefinitionConfig[] {
   ];
 }
 
+/**
+ * One default built-in tool entry by name, as a fresh object: the definition a Sys-derived
+ * tool (see sys/derived.ts) uses when its caller supplies none. Throws when the name names
+ * no built-in default, so a typo in a derivation fails at construction, not mid-call.
+ */
+export function defaultBuiltinToolConfig(name: string): ToolDefinitionConfig {
+  const entry = defaultBuiltinTools().find((tool) => tool.name === name);
+  if (!entry) throw new Error(`no built-in tool named ${JSON.stringify(name)}`);
+  return entry;
+}
+
 /** Agent State version number: an invalid or missing field is always treated as 1. */
 export function agentStateVersion(config: Pick<SystemConfig, "version">): number {
   const v = config.version;

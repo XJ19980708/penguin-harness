@@ -14,6 +14,10 @@ export default defineConfig({
     // The plugin contract: types only, so a plugin package compiles against the SDK
     // without depending on whatever embeds it.
     "src/plugin/index.ts",
+    // The Sys capability interface: the world a derivation runs in — the host default
+    // (HostSys) and the features that take their world as a parameter. Its own subpath so
+    // providers compile against the contract without the runtime behind it.
+    "src/sys/index.ts",
     // A row's effective connection and credential rule: no Node dependency and no catalog
     // data, so the Web App bundles the same answers the server and the CLI compute.
     "src/state/model-connection.ts",

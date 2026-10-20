@@ -33,6 +33,10 @@
       "types": "./dist/plugin/index.d.ts",
       "import": "./dist/plugin/index.js"
     },
+    "./sys": {
+      "types": "./dist/sys/index.d.ts",
+      "import": "./dist/sys/index.js"
+    },
     "./context-limits": {
       "types": "./dist/llm/context-limits.d.ts",
       "import": "./dist/llm/context-limits.js"

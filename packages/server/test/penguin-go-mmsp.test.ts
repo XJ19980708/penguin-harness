@@ -26,7 +26,7 @@ import {
   toolCallOutput,
   inlineData,
 } from "@prismshadow/penguin-core";
-import type { LLMOutcome, OmniMessage } from "@prismshadow/penguin-core";
+import type { LLMOutcome, AmspRecord } from "@prismshadow/penguin-core";
 import type { ErrorBody, ModelsResponse } from "../src/api/types.js";
 import { PlatformAuthService, platformConnection } from "../src/services/platform-auth-service.js";
 import { migratePenguinGoRoutes } from "../src/services/project-config-migrations.js";
@@ -240,7 +240,7 @@ describe("Penguin Go stored projects", () => {
       ).toBe(true);
     },
   );
-  it("sync changes both group and row routes while retaining keys, selections, promotions and custom settings", async () => {
+  it("sync changes routes, refreshes prices and removes an ended promotion while retaining keys, selections and custom settings", async () => {
     const id = await project();
     const deliveredBase = "https://token.penguin.ooo/api/v1";
     const original = oldConfig("saved-device-key");
@@ -266,11 +266,13 @@ describe("Penguin Go stored projects", () => {
       ...original.models[0],
       client_type: "mmsp",
       base_url: deliveredBase,
+      pricing: { unit: "usd_per_mtok", cache_read: 0.1, cache_write: 1, output: 3 },
     });
     expect(rows[1]).toEqual({
       ...original.models[1],
       client_type: "mmsp",
       base_url: deliveredBase,
+      pricing: { unit: "usd_per_mtok", cache_read: 0.1, cache_write: 1, output: 3 },
     });
     expect(rows.slice(2)).toEqual(original.models.slice(2));
     expect(raw.default_model).toEqual(original.default_model);
@@ -285,7 +287,7 @@ describe("Penguin Go stored projects", () => {
           "SELECT discount FROM model_promotions WHERE project_id=? AND provider='penguin-go'",
         )
         .get(id),
-    ).toMatchObject({ discount: 0.4 });
+    ).toBeUndefined();
     expect(fake.calls).toHaveLength(2);
   });
   it("server loads migrate multiple old projects and do not rewrite a second time; an SDK load leaves them as written", async () => {
@@ -429,8 +431,8 @@ describe("Penguin Go stored projects", () => {
   });
 });
 
-async function drain(stream: AsyncGenerator<OmniMessage, LLMOutcome>) {
-  const messages: OmniMessage[] = [];
+async function drain(stream: AsyncGenerator<AmspRecord, LLMOutcome>) {
+  const messages: AmspRecord[] = [];
   for (;;) {
     const step = await stream.next();
     if (step.done) return { messages, outcome: step.value };
@@ -487,10 +489,10 @@ describe("Penguin Go MMSP HTTP transport", () => {
     const client = llm();
     client.setHistory([
       userText("previous"),
-      thinkingMessage("saved", "completed", { signature: "history-signature" }),
+      thinkingMessage("saved", { signature: "history-signature" }),
       assistantText("past"),
       toolCall({ name: "lookup", arguments: "{}", toolCallId: "old-call" }),
-      toolCallOutput({ toolCallId: "old-call", output: "result" }),
+      toolCallOutput({ toolCallId: "old-call", output: "result", status: "completed" }),
     ]);
     const result = await drain(
       client.streamGenerate({

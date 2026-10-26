@@ -9,23 +9,36 @@ import type { ReleaseNote } from "./release-notes";
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
-    // A local build of 0.2.16: the upstream release plus the changes below. Its version compares
-    // equal to 0.2.16 (a pre-release suffix is ignored), so it sits first and the dialog shows it
-    // as the newest note; 0.2.16 keeps the running-version pill and moves behind the fold.
-    version: "0.2.16-local.1",
-    date: "2026-10-20",
+    version: "0.2.17",
+    date: "2026-10-26",
+    zh: [
+      "Agent API 边记录对话边流式传输，你的程序可以跟进不是自己发起的对话。",
+      "回复可以显示统计图与表单，填过的表单重新加载后仍显示答案。",
+      "轨迹观测面板重新构建，核心是固定在顶部的工具栏、轮次导航和每轮的精确 Token 数据。",
+      "远程机器上的对话读取该机器自己的 Agent、记忆和模型，机器连不上时明确告知。",
+      "Kimi K3.1 Pro 和 MiniMax M3.1 Flash 加入模型库；Markdown 文档在 Markdown 阅读器中打开，内置目录和在文档中查找。",
+    ],
+    en: [
+      "The Agent API streams a conversation as it is recorded, and your programs can follow conversations they did not start.",
+      "Replies can show charts and forms, and an answered form still shows its answers after a reload.",
+      "The Trajectories panel is rebuilt around a sticky toolbar, a turn index and each turn's exact token figures.",
+      "A conversation on a remote machine reads that machine's own agents, memory and models, and says plainly when the machine is out of reach.",
+      "Kimi K3.1 Pro and MiniMax M3.1 Flash join the model catalog, and Markdown documents open in a reader with an outline and in-page find.",
+    ],
+  },
+  {
+    // A local build: upstream 0.2.17 plus the changes listed here. The version sorts below 0.2.17,
+    // so 0.2.17 keeps the running-version pill and this note sits behind it.
+    version: "0.2.17-local.1",
+    date: "2026-10-26",
     zh: [
       "外观新增七种配色：素笺墨竹、远游秋罗、晴川暖杏、青瓷凝翠、梅烟素绢、蒹葭苍苍、沧浪霜华，可在设置的外观页切换。",
       "外观新增四套内置底纹：远山云鹤、山水、帕米尔高原、赛里木湖，随亮色与暗色自动换图。",
-      "修复模型配置里的「检测视觉」总是失败：探测用的图片此前不是一张能被严格解码器读出的 PNG。",
-      "检测视觉失败时不再提示检查 API Key 与 base URL；模型明确不支持图片时会关闭开关。",
       "第三方网关返回的错误原文不再丢失，失败原因可以直接看到。",
     ],
     en: [
       "Appearance adds seven accent colours — ink green, autumn teal, warm sky, celadon, plum smoke, reed and frost blue — selectable on the Appearance page.",
       "Appearance adds four built-in textures — distant mountains, landscape, Pamir and Sayram — each switching with light and dark.",
-      "Fixes the vision check in model settings always failing: the probe picture was not a PNG a strict decoder could read.",
-      "A failed vision check no longer asks you to inspect your API key and base URL, and a model that refuses images turns the switch off.",
       "Error text from third-party gateways is no longer dropped, so a failure says what the provider said.",
     ],
   },

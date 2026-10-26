@@ -3,22 +3,17 @@
  * frontend SPA (single source of truth).
  *
  * These field definitions are authoritative for the Web API contract. Conventions:
- *   - DTO fields use camelCase; OmniMessage keeps the core protocol as-is (snake_case shell),
+ *   - DTO fields use camelCase; an AMSP record keeps its own shape as-is (snake_case envelope),
  *     no conversion;
  *   - This file holds only types, no implementation; exposed to the frontend via package
  *     exports `"./api"` for type-only import;
- *   - Types are taken only from core's pure subpaths (omnimessage / interfaces), so the
+ *   - Types are taken only from `@prismshadow/amsp` and core's pure `interfaces` subpath, so the
  *     frontend can safely reference them.
  *
  * Docs: packages/docs/content/server-api.{zh,en}.md (site path /docs/server-api) is the
  * public route/SSE reference for this contract — keep it in sync when changing DTOs.
  */
-import type {
-  CompactionMode,
-  OmniMessage,
-  SessionSource,
-  ToolCallPayload,
-} from "@prismshadow/penguin-core/omnimessage";
+import type { CompactionMode, AmspRecord, SessionSource, ToolCallPayload } from "@prismshadow/amsp";
 import type {
   MCPServerConfig,
   ThinkingLevelName,
@@ -1023,7 +1018,8 @@ export interface ModelBalanceFailure {
 /**
  * How the authorization code travels back. `callback` sends the browser to a harness URL
  * the provider redirects to; `manual` asks the provider for a one-time code the user copies
- * back by hand, for the case where that redirect cannot reach the harness.
+ * back by hand, for the case where that redirect cannot reach the harness — or where the
+ * provider would refuse it: only an HTTPS or loopback HTTP origin can be redirected to.
  */
 export type ModelOAuthMode = "callback" | "manual";
 
@@ -1035,7 +1031,7 @@ export type ModelOAuthMode = "callback" | "manual";
 export interface ModelOAuthStartRequest {
   /** Provider group id (must be a catalog group that publishes a key-minting flow). */
   provider: string;
-  /** Defaults to `callback`. */
+  /** Defaults to `callback`; the response says which mode the flow was opened in. */
   mode?: ModelOAuthMode;
 }
 
@@ -1043,6 +1039,12 @@ export interface ModelOAuthStartRequest {
 export interface ModelOAuthStartResponse {
   flowId: string;
   authorizeUrl: string;
+  /**
+   * The mode the flow was opened in: `manual` for a `callback` request when the origin the
+   * request reached this server on is neither HTTPS nor loopback HTTP, which the provider's
+   * authorization page refuses as a callback.
+   */
+  mode: ModelOAuthMode;
 }
 
 /** Why a flow failed, as a code the frontend phrases; never carries a code, a verifier or a key. */
@@ -2253,7 +2255,7 @@ export interface TracePosition {
 }
 
 /** History-only transport metadata; `tracePosition` is never persisted into Trace JSONL. */
-export type HistoryMessage = OmniMessage & { tracePosition?: TracePosition };
+export type HistoryMessage = AmspRecord & { tracePosition?: TracePosition };
 
 export interface SessionForkRequest {
   /** The final root assistant text record of the completed Task to keep. */
@@ -2302,7 +2304,7 @@ export interface SessionPatchRequest {
  *   - `cursor`: the Session channel's most recently assigned SSE event id
  *     (`<epoch>-<seq>`); every event published up to and including this id is already
  *     reflected in `fragments`.
- *   - `fragments`: one synthetic `partial_* start` OmniMessage per open streaming
+ *   - `fragments`: one synthetic `partial_* start` AmspRecord per open streaming
  *     fragment, whose payload carries the full accumulated content so far (text/thinking
  *     prefix, tool-call name + accumulated arguments, tool-output prefix + images), with
  *     the original `origin` chain preserved.
@@ -2317,7 +2319,7 @@ export interface SessionPatchRequest {
  */
 export interface MessagesLiveTail {
   cursor: string;
-  fragments: OmniMessage[];
+  fragments: AmspRecord[];
 }
 
 /**
@@ -3250,7 +3252,7 @@ export interface MessagingAccountHoldersResponse {
 }
 
 // ---------------------------------------------------------------------------
-// SSE server events (OmniMessage uses the default event, only server_event here)
+// SSE server events (records use the default event, only server_event here)
 // ---------------------------------------------------------------------------
 
 /** Docs: /docs/server-api § "Streaming (SSE)". */
@@ -3259,7 +3261,7 @@ export type ServerEvent =
    * Approval request escalated to a human: every call under always-ask, plus rw/unknown-permission
    * calls under read-only (see runtime/approvals.ts); pending approvals are resent on reconnect.
    */
-  | { type: "approval_request"; toolCall: OmniMessage<ToolCallPayload>; origin?: string[] }
+  | { type: "approval_request"; toolCall: AmspRecord<ToolCallPayload>; origin?: string[] }
   /** Session run status flip (for toggling the input area and list); `queued` = queued follow-up count (see TaskCreateRequest.queueIfBusy). */
   | {
       type: "task_state";
@@ -3533,7 +3535,7 @@ export interface SessionContextResponse extends SessionContextParts {
 }
 
 export interface TraceEventsResponse {
-  events: OmniMessage[];
+  events: AmspRecord[];
   offset: number;
   limit: number;
   /**
@@ -3563,6 +3565,11 @@ export interface RequestSpan {
   approvalWaitMs?: number;
   /** LLM generation duration = durationMs − approvalWaitMs (≥ 0): only this can be used as the TPS denominator, not durationMs. */
   activeMs?: number;
+  /**
+   * The thinking level this request went out at, as its `request_begin` records it. Absent
+   * when no level was sent, and on Traces written before the field — unknown, not a level.
+   */
+  thinkingLevel?: string;
 }
 
 /**
@@ -3593,6 +3600,14 @@ export interface TraceTaskStats {
    * mode; treat an absent value as `summarize`, which is what the badge said before the split.
    */
   compactionMode?: CompactionMode;
+  /**
+   * A short label for the round navigator: the first non-empty line of the user text that
+   * started this turn, with harness marker blocks and attachment lines removed, whitespace
+   * collapsed, at most 120 characters (the view truncates it further to fit). Absent when no
+   * user text started the turn — a summarize compaction turn, an image-only send — or none of
+   * its lines is left (only attachment lines).
+   */
+  prompt?: string;
   /**
    * This turn's message index range within the **entire file** (inclusive). A single
    * sequential scan on the server tells which turn each message belongs to; the frontend
@@ -3672,7 +3687,8 @@ export interface ToolCallSpan {
   startTs: string;
   endTs?: string;
   durationMs?: number;
-  stopReason?: string;
+  /** The paired tool_call_output's `status` (completed / aborted / fatal); absent while the call has no output. */
+  status?: string;
 }
 
 /** Workspace file entry (Files tab). */
@@ -3805,7 +3821,8 @@ export interface TraceToolSpan {
   approvalTs?: string;
   decision?: string;
   outputTs?: string;
-  stopReason?: string;
+  /** The tool_call_output's `status` (completed / aborted / fatal); absent while unclosed. */
+  status?: string;
   /** The Task that initiated this tool (grouped with its tool_call segment): async output belongs to this Task even if it arrives after request_end. */
   taskIndex: number;
 }
@@ -5047,12 +5064,12 @@ export interface DesktopTrayCommandMessage {
 
 /**
  * The API socket (PRFC-0011): one WebSocket per tab, every frame a call to an existing
- * endpoint. It is opened on the terminal-stream upgrade path under a reserved id naming the
- * signed-in user — `api-socket@<userId>` — which the server's terminal lookup answers with a
- * reference the socket protocol is served for (server: socket/ref.ts). Shared here so the
- * Web App and the machine relay spell the address the same way.
+ * endpoint. It has its own upgrade route, {@link API_SOCKET_PATH}: the runtime's websocket
+ * seam authenticates the cookie and the Origin there and hands the socket to the platform,
+ * which serves the protocol as the signed-in user (server: socket/ref.ts). Shared so the Web
+ * App and anything else that speaks to another server spell the address the same way.
  */
-export const API_SOCKET_ID_PREFIX = "api-socket@";
+export const API_SOCKET_PATH = "/api/socket";
 
 /**
  * Paths whose answer depends on the KIND of session behind the request — the desktop shell's
@@ -5070,8 +5087,9 @@ export function sessionKindPath(pathname: string): boolean {
     (pathname.startsWith("/api/") && pathname.endsWith("/reveal"))
   );
 }
-export function apiSocketPath(userId: string): string {
-  return `/api/terminals/${encodeURIComponent(`${API_SOCKET_ID_PREFIX}${userId}`)}/stream`;
+/** The API socket's address. No id is involved: the handshake's cookie names the user. */
+export function apiSocketPath(): string {
+  return API_SOCKET_PATH;
 }
 
 // Desktop folder access (desktop mode, macOS)
@@ -5368,6 +5386,12 @@ export interface MachineSkippedModel {
   /** The far side's error code (`model_not_addable`, `model_not_routable`). */
   code: string;
   reason: string;
+  /**
+   * The entry is one of this server's built-in models for its group, which the machine refused
+   * as not addable: the machine's build does not list it yet, so updating the machine, then
+   * syncing again, carries it. Absent for any other refusal.
+   */
+  builtInHere?: true;
 }
 
 /** A model entry that takes `variable` from this server's environment. */

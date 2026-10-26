@@ -520,6 +520,7 @@ class PenguinServer {
     const auth = () => this.auth();
     return {
       hmr: this.deps.hmr,
+      trustProxy: this.deps.config.trustProxy,
       // A getter: the upgrade handler asks per handshake, and gets the current generation's.
       get authService() {
         return auth();

@@ -249,6 +249,8 @@ export const en: Strings = {
           "Model keys from environment variables can't be synced to this machine. Set the keys by hand first.",
         skippedTitle: "These models were not synced to this machine:",
         skippedModel: (model: string, reason: string) => `${model}: ${reason}`,
+        notInMachineBuild:
+          "This machine's version doesn't include this built-in model yet; update the machine, then sync config again.",
       },
       held: {
         moving: "Another action is running on this machine.",
@@ -1859,6 +1861,7 @@ export const en: Strings = {
     onMachineHint: (machine: string) =>
       `This agent lives on ${machine}: its settings, chats and deletion all happen on that machine, apart from this server's agents of the same id.`,
     usageThisServerOnly: "The usage center counts this server's agents only",
+    readingMachineAgents: (machine: string): string => `Reading the agents on ${machine}…`,
     deleteConfirmOnMachine: (name: string, machine: string): string =>
       `Delete agent "${name}" on ${machine}? Its directory there (including all Traces) will be removed recursively and cannot be recovered.`,
     deleteAgent: "Delete agent",
@@ -1923,7 +1926,7 @@ export const en: Strings = {
     apiReadDocs: "Read the documentation",
     apiCopyAgentPrompt: "Copy prompt for Agent",
     apiAgentPrompt: (docsUrl: string, baseUrl: string, agentRef: string) =>
-      `Read the PenguinHarness Agent API guide at ${docsUrl}, then help me write code to call this Agent.\n\nBase URL: ${baseUrl}\nAgent ID: ${agentRef}\n\nUse the @prismshadow/amsp SDK: stream() for streamed events and await run() for the complete result. When a key is required, read PENGUIN_AGENT_KEY from the environment; do not hardcode it. Continue existing conversations with sessionId. Follow the guide for approval requests and HTTP 429, respecting Retry-After on 429 responses.`,
+      `Read the PenguinHarness Agent API guide at ${docsUrl}, then help me write code to call this Agent.\n\nBase URL: ${baseUrl}\nAgent ID: ${agentRef}\n\nUse the @prismshadow/amsp SDK: stream() for the streamed records and await run() for the complete result. When a key is required, read PENGUIN_AGENT_KEY from the environment; do not hardcode it. Continue existing conversations with sessionId. Follow the guide for approval requests and HTTP 429, respecting Retry-After on 429 responses.`,
     apiSessionSettings: "New session settings",
     apiSessionSettingsHint:
       "Applies to new API sessions. An unset model follows the Project default; an unset thinking level follows the Agent configuration; an unset workspace creates a temporary workspace.",
@@ -1979,7 +1982,8 @@ export const en: Strings = {
     apiTryCacheRead: "Cache read",
     apiTryCacheWrite: "Cache write",
     apiTryElapsed: "Elapsed",
-    apiTryStreamBroken: "The stream ended before run.done.",
+    apiTryStreamBroken: "The stream ended before data: [DONE].",
+    apiTryUnfinished: "The run did not reach its end: its last task_begin was never closed.",
   },
 
   models: {
@@ -2090,7 +2094,12 @@ export const en: Strings = {
         "- Never read or edit .project_config.toml; configuration goes through penguin commands only.",
         `- Finish with \`penguin config model list --project-id ${projectId} --root <data root>\` and show me the result.`,
       ].join("\n"),
-    platformSyncAdded: (n: number): string => (n === 1 ? "Added 1 model" : `Added ${n} models`),
+    platformSyncResult: (added: number, updated: number): string => {
+      const models = (n: number): string => (n === 1 ? "1 model" : `${n} models`);
+      if (added === 0) return `Updated ${models(updated)}`;
+      if (updated === 0) return `Added ${models(added)}`;
+      return `Added ${models(added)}, updated ${models(updated)}`;
+    },
     platformUpToDate: "Already up to date",
     homepage: "Model page",
     speedTest: "Speed test",
@@ -2140,9 +2149,8 @@ export const en: Strings = {
       `Detected ${protocol}; base URL normalized to ${url}`,
     /** The ONE failure toast: every mode collapses to it, naming only what the user can act on. */
     detectFailedBody: "Could not detect the protocol. Please check the API key and the base URL.",
-    /** The vision probe failed: not a protocol problem, so it must not point at the key or the URL. */
-    detectVisionFailedBody:
-      "Vision check failed: the model gave nothing to judge on; the switch is left as it was.",
+    /** The vision probe learned nothing: not a protocol problem, so it must not send the reader to the key or the URL. */
+    detectVisionFailed: "Could not tell whether this model accepts images; vision left as it was",
     /** Save-time detection came back empty: the save proceeds on the compatible client. */
     detectFellBack: "Protocol not detected; saved as OpenAI Chat Completions",
     addProtocolHintDetect:
@@ -2207,6 +2215,7 @@ export const en: Strings = {
     priceCacheRead: "Cache read price",
     priceCacheWrite: "Cache write price",
     priceOutput: "Output price",
+    priceBlankHint: "Empty = not costed",
     promotionPriceHint: (pct: number): string =>
       `These are list prices. A running promotion takes ${pct}% off them; changing a price cancels it`,
     currency: "Currency",
@@ -2215,6 +2224,8 @@ export const en: Strings = {
     apiKey: "API key",
     apiKeyKeepHint: "Leave empty to keep the current key",
     apiKeyEnvHint: (envKey: string): string => `Leave empty to use the ${envKey} env var`,
+    apiKeyEnterHint: "Enter an API key",
+    apiKeyKeylessHint: "Leave blank to use no API key",
     keyConfigured: "Key configured",
     clearApiKey: "Clear stored API key",
     baseUrl: "Custom base URL",
@@ -2240,7 +2251,8 @@ export const en: Strings = {
     groupSettingsEntry: "Group settings…",
     groupSettingsTitle: (label: string): string => `${label} group settings`,
     clearGroupKey: "Clear the group key",
-    baseUrlNone: "Not set: the client's default endpoint",
+    baseUrlDefault: "Leave blank to use the default base URL",
+    baseUrlEnterHint: "Enter a base URL",
     detectNeedsBaseUrl: "Enter a base URL first",
     protocolNone: "Not set",
     protocolRoutedById: "Routed by model ID",
@@ -2355,8 +2367,8 @@ export const en: Strings = {
       moonshot:
         "Defaults to the China endpoint (api.moonshot.cn); for a platform.kimi.com key, set MOONSHOT_BASE_URL=https://api.moonshot.ai/v1 beside it, or enter the key here with that base URL",
     },
-    envBaseUrlNote: (envBaseUrlKey: string): string =>
-      `Requests go to the client's default endpoint, or to ${envBaseUrlKey} when it is set`,
+    envBaseUrlNote: (defaultBaseUrl: string, envBaseUrlKey: string): string =>
+      `Requests go to ${defaultBaseUrl}, or to ${envBaseUrlKey} when it is set`,
     confirmVisionModelTitle: "Set as proxy vision model",
     confirmVisionModel: (name: string): string =>
       `Make "${name}" the proxy vision model? Models without vision will read images through it when they call read_file.`,
@@ -2786,6 +2798,10 @@ export const en: Strings = {
     sharedHint: "Managed in the Project config for every machine; it cannot be removed here.",
     machineUnreadable: (name: string, reason: string) =>
       `Could not read what ${name} runs: ${reason}`,
+    /** A machine out of reach, as the header's machine picker lists it. */
+    machineOutOfReach: (machine: string) => `${machine} (out of reach)`,
+    /** A manage-installs row whose machine has not answered yet: its button waits for it. */
+    waitingFor: (machine: string) => `Waiting for ${machine} to answer`,
     /** The header button (admin only) that opens the Settings dialog on its Plugins page. */
     openSettings: "Settings",
     pageDesc:
@@ -2833,6 +2849,11 @@ export const en: Strings = {
       failed: (reason: string) => `Failed to load: ${reason}`,
       elsewhere: (machines: string) => `Runs only on ${machines}, not on this server`,
       unsynced: "Installed, not on that machine yet",
+      /** Appended to a library status counted with Agents on a machine out of reach. */
+      lastSeenOn: (n: number) =>
+        n === 1
+          ? " (incl. 1 agent on a machine out of reach, as last seen)"
+          : ` (incl. ${n} agents on machines out of reach, as last seen)`,
     },
     noMatch: "No plugin matches that.",
     /** The description of a shipped package the registry has no entry for. */
@@ -3690,11 +3711,13 @@ Scenarios:
     subagent: "Subagent",
     subagentRunning: "Running",
     /**
-     * Abort banner (user interruptions only). The cause localizes from `errorCode`;
-     * `errorMessage` (raw, untranslatable) rides verbatim. A legacy Trace without a code
-     * renders its English `reason` prose as-is.
+     * Abort banner (user interruptions, and the turn cap). The cause localizes from
+     * `errorCode`; `errorMessage` (raw, untranslatable) rides verbatim. The turn cap's line is
+     * localized whole (its message only restates the cap in English). A legacy Trace without a
+     * code renders its English `reason` prose as-is.
      */
     aborted: (item?: { errorCode?: string; errorMessage?: string; reason?: string }) => {
+      if (item?.errorCode === "max_turns") return "[Stopped]: reached the maximum turns per task";
       const cause =
         item?.errorCode === "user_abort"
           ? "aborted by user"
@@ -3731,9 +3754,11 @@ Scenarios:
               ? "Network or service temporarily unavailable"
               : kind === "image_rejected"
                 ? "The model provider rejected an image in this turn's input (replaced with a note)"
-                : kind === "failed"
-                  ? "The model provider returned an error"
-                  : "The request failed";
+                : kind === "output_truncated"
+                  ? "The model's output was cut off at the output limit"
+                  : kind === "failed"
+                    ? "The model provider returned an error"
+                    : "The request failed";
       const action =
         state === "gaveUp"
           ? `giving up after attempt ${attempt}${errorMessage ? `: ${errorMessage}` : ""}`
@@ -4027,6 +4052,8 @@ Scenarios:
       showSource: "Show source",
       stepUp: "Increase",
       stepDown: "Decrease",
+      invalid: "Not a valid value",
+      choose: "Choose…",
       conditions: {
         clear: "Clear",
         "partly-cloudy": "Partly cloudy",
@@ -4064,6 +4091,28 @@ Scenarios:
       done: "Done",
       deltaUp: "up",
       deltaDown: "down",
+      chartKind: {
+        line: "Line chart",
+        area: "Area chart",
+        bar: "Bar chart",
+        pie: "Pie chart",
+        scatter: "Scatter plot",
+        histogram: "Histogram",
+        gauge: "Gauge",
+      },
+      categories: (n: number) => `${n} ${n === 1 ? "category" : "categories"}`,
+      seriesCount: (n: number) => `${n} series`,
+      resources: "System resources",
+      cpu: "CPU",
+      memory: "Memory",
+      swap: "Swap",
+      disk: "Disks",
+      network: "Network",
+      load: "Load",
+      uptime: "Uptime",
+      received: "Received",
+      sent: "Sent",
+      lastReadings: (n: number) => `Last ${n} readings`,
     },
     forkSession: "Fork chat from here",
     forkSessionConfirmBody:
@@ -4090,7 +4139,7 @@ Scenarios:
     pinnedSession: "Pinned",
     /** The hover ellipsis button that opens the row's full context menu. */
     moreActions: "More actions",
-    /** The bare "More" of a row that counts nothing (the UI package's MoreRow default, the Trace panel's file pills). */
+    /** The bare "More" of a row that counts nothing (the UI package's MoreRow default). */
     loadMore: "More",
     /** A list's one reveal row (a sidebar group, time mode's whole list, an archive group): n = conversations that list still hides; a click shows ten more, fetching when the loaded ones run out. */
     expandRestSessions: (n: number) => `Show ${n} more ${n === 1 ? "chat" : "chats"}`,
@@ -4775,17 +4824,27 @@ Scenarios:
     zoomIn: "Zoom in",
     linkHint:
       "Hover a timeline segment or event row to cross-highlight, click a segment to jump to its message; legend highlights its kind; drag the bar below to pan/zoom",
+    /** The Trace file picker's panel: its title, and how many files it lists. */
     filesTitle: "Trace files",
+    fileCount: (n: number) => (n === 1 ? "1 file" : `${n} files`),
     toolCalls: "Tool calls",
-    taskInput: "Input tokens this turn",
-    taskOutput: "Output tokens this turn",
     cacheHit: "Cache hits",
+    /** The uncached part of the input, beside its cache hits (a round's readings). */
+    cacheMiss: "Cache misses",
     hitRate: "Hit rate",
     avgToolCalls: "Avg tools / turn",
     inProgress: "in progress",
     systemPrompt: "System prompt",
     toolDefs: (n: number) => `Tool definitions (${n})`,
     exportFile: "Export",
+    /** The round navigator the toolbar's rounds button opens: its title, and how many rounds it lists. */
+    roundNav: "Turn index",
+    roundCount: (n: number) => (n === 1 ? "1 turn" : `${n} turns`),
+    /** The navigator's number box: its accessible name and its placeholder. */
+    jumpToRound: "Jump to turn",
+    jumpToRoundPlaceholder: "Turn",
+    /** The panel a round's ring opens, and the name of the button standing in for a ring on a round with no context snapshot. */
+    roundReadings: "Turn readings",
   },
 
   benchmark: {

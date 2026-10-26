@@ -83,7 +83,7 @@ import type {
   LLMOutcome,
   ModelRequestContext,
   ModelRef,
-  OmniMessage,
+  AmspRecord,
   ModelEntry,
   ProjectConfig,
   ProviderConnection,
@@ -749,7 +749,7 @@ export function utilityCompletionConfig(
  * terminal outcome is then what has something to say about why.
  */
 export async function collectUtilityCompletion(
-  stream: AsyncGenerator<OmniMessage, LLMOutcome>,
+  stream: AsyncGenerator<AmspRecord, LLMOutcome>,
 ): Promise<UtilityCompletion> {
   let text = "";
   for (;;) {
@@ -856,7 +856,7 @@ export class ProjectConfigService implements ProjectConfigStore {
    * Called once as the App starts, before the schedulers. A file that does not parse is left for
    * the next read that needs it to report. Exists for the one-time migrations alone, so it goes
    * with them at the 0.3.0 release preparation
-   * (changelog/unreleased/2026-10-15-backward-compatibility.md).
+   * (changelog/0.2.17/2026-10-15-backward-compatibility.md).
    */
   async migrateStoredConfigs(): Promise<void> {
     let entries: Dirent[];
@@ -2150,21 +2150,21 @@ export class ProjectConfigService implements ProjectConfigStore {
   }
 
   /**
-   * Penguin Go's catalog, merged into its group. Only what is new arrives: a model the
-   * platform advertises and the group lacks is added with the platform's list price, context
+   * Penguin Go's catalog, merged into its group. A model the platform advertises and the group
+   * lacks is added with the platform's list price, context
    * window, vision flag, display name and routing, and its promotion is stored beside it
    * (web.db). Its protocol and endpoint are stored per field against the group's
    * `[providers.penguin-go]` table in the file (the built-in catalog is not consulted): a field
    * the table holds is followed, the row storing only where it differs from the platform's
    * group value (the relay URL every model shares); a field the table lacks is written on the
-   * row in full. A row the group
-   * already holds keeps its metadata and promotion. Go-managed routes switch to MMSP,
-   * including model overrides; user-redirected endpoints retain their configuration.
+   * row in full. Existing advertised rows receive the platform's list price and promotion (an
+   * ended promotion is cleared); all other metadata and rows absent from the response are kept. Go-managed routes switch to
+   * MMSP, including model overrides; user-redirected endpoints retain their configuration.
    *
    * Authorization (`applyKeyToExisting`) also writes the delivered key once, as the group's
    * key (`[providers.penguin-go]`); new rows carry no key of their own and follow it.
    *
-   * Returns how many rows were added, `updated` (routes changed),
+   * Returns how many rows were added, `updated` (price, promotion or route changed),
    * and `applied`: on authorization, how many of the group's rows now use the group key;
    * otherwise the rows added.
    */
@@ -2175,12 +2175,38 @@ export class ProjectConfigService implements ProjectConfigStore {
     apiKey: string,
     applyKeyToExisting: boolean,
   ): Promise<PlatformModelApplyResult> {
-    const raw = structuredClone(await this.readRaw(projectId));
-    const updated =
+    const before = await this.readRaw(projectId);
+    const raw = structuredClone(before);
+    const routesUpdated =
       provider === PENGUIN_GO_PROVIDER_ID && catalog.models.length > 0
         ? migratePenguinGoRoutes(raw, catalog.models[0]!.baseUrl)
         : 0;
-    const current = asArray(raw.models);
+    const previous = new Map(
+      asArray(before.models)
+        .filter((model) => model.provider === provider)
+        .map((model) => [model.model_id, model]),
+    );
+    const advertised = new Map(catalog.models.map((model) => [model.modelId, model]));
+    const storedPromotions = new Map(
+      (this.promotions?.list(projectId) ?? [])
+        .filter((promotion) => promotion.provider === provider)
+        .map((promotion) => [promotion.modelId, promotion.discount]),
+    );
+    const changedIds = new Set<string>();
+    let pricesChanged = false;
+    const current = asArray(raw.models).map((model) => {
+      if (model.provider !== provider || typeof model.model_id !== "string") return model;
+      if (!sameValue(previous.get(model.model_id), model)) changedIds.add(model.model_id);
+      const remote = advertised.get(model.model_id);
+      if (remote === undefined) return model;
+      const priceChanged = !platformPricingMatches(model.pricing, remote.pricing);
+      const promotionChanged =
+        this.promotions !== undefined && storedPromotions.get(model.model_id) !== remote.discount;
+      if (priceChanged || promotionChanged) changedIds.add(model.model_id);
+      if (!priceChanged) return model;
+      pricesChanged = true;
+      return { ...model, pricing: platformPricingTable(remote.pricing) };
+    });
     const known = new Set(
       current.flatMap((model) =>
         model.provider === provider && typeof model.model_id === "string" ? [model.model_id] : [],
@@ -2226,7 +2252,7 @@ export class ProjectConfigService implements ProjectConfigStore {
     }
 
     const nextModels = [...current, ...added];
-    if (added.length > 0 || updated > 0 || applyKeyToExisting) {
+    if (added.length > 0 || routesUpdated > 0 || pricesChanged || applyKeyToExisting) {
       const providers = applyKeyToExisting
         ? patchProviderTable(asTable(raw.providers), provider, { apiKey }).table
         : raw.providers;
@@ -2236,24 +2262,26 @@ export class ProjectConfigService implements ProjectConfigStore {
         models: nextModels,
       });
     }
-    // After the file write, so a promotion never lands for a row the file failed to take; the
-    // group's existing promotions are kept as they are.
-    const addedIds = new Set(added.map((row) => row.model_id));
+    // After the file write, so each promotion applies to the list price that was persisted.
+    // A missing promotion clears the advertised row's old one; unadvertised rows are kept.
     const promoted = catalog.models.flatMap((model) =>
-      model.discount !== undefined && addedIds.has(model.modelId)
+      model.discount !== undefined
         ? [{ provider, modelId: model.modelId, discount: model.discount }]
         : [],
     );
-    if (this.promotions !== undefined && promoted.length > 0) {
+    if (
+      this.promotions !== undefined &&
+      catalog.models.some((model) => storedPromotions.get(model.modelId) !== model.discount)
+    ) {
       const kept = this.promotions
         .list(projectId)
-        .filter((p) => p.provider === provider && !addedIds.has(p.modelId));
+        .filter((p) => p.provider === provider && !advertised.has(p.modelId));
       this.promotions.replaceProvider(projectId, provider, [...kept, ...promoted]);
     }
     const applied = applyKeyToExisting
       ? rowsFollowingGroupKey({ providers: raw.providers, models: nextModels }, provider)
       : added.length;
-    return { added: added.length, updated, applied };
+    return { added: added.length, updated: Math.max(routesUpdated, changedIds.size), applied };
   }
 
   /**
@@ -2270,7 +2298,8 @@ export class ProjectConfigService implements ProjectConfigStore {
    *   vision model. Everything else goes: every row that is not a preset (the user's own,
    *   and those an older catalog added, retired rows included), every user-defined group,
    *   every override on a preset row, and every group setting the catalog does not write
-   *   (custom's and vLLM's base URLs included). Promotions become the catalog's.
+   *   (custom's base URL included; vLLM's returns to the catalog's local address). Promotions
+   *   become the catalog's.
    *
    *   Penguin Go gets no exception. Its rows beyond the presets and its promotions came from
    *   the platform, which prices against its own list: keeping a promotion on a row whose price
@@ -2372,7 +2401,7 @@ export class ProjectConfigService implements ProjectConfigStore {
  * or complete backfill) — the probe's "the endpoint really answered" signal. Tool calls and
  * event messages don't count (the probe declares no tools).
  */
-export function isProbeContent(msg: OmniMessage): boolean {
+export function isProbeContent(msg: AmspRecord): boolean {
   const p = msg.payload as { type?: string; thinking?: string; text?: string };
   if (p.type === "partial_thinking" || p.type === "thinking") return Boolean(p.thinking);
   if (p.type === "partial_text" || p.type === "text") return Boolean(p.text);
@@ -2380,7 +2409,9 @@ export function isProbeContent(msg: OmniMessage): boolean {
 }
 
 /**
- * Probe verdict from the terminal LLM outcome. `completed` always passes. A `malformed`
+ * Probe verdict from the terminal LLM outcome. `completed` always passes, and so does a
+ * response cut off at its output cap (`output_truncated`: a whole response the probe's tiny
+ * max_tokens cut off). A `malformed`
  * ending after genuine streamed content also passes: the typical case is a reasoning-heavy
  * model that spends the probe's tiny max_tokens entirely on thinking (finish_reason=length ->
  * MMSP's EmptyResponseError, a `retryable` outcome that still streamed content) — the
@@ -2392,7 +2423,10 @@ export function probeVerdict(
   outcome: LLMOutcome,
   sawContent: boolean,
 ): { ok: true } | { ok: false; message: string } {
-  if (outcome.status === "completed") return { ok: true };
+  // A response cut at the probe's tiny cap is a whole answer: the endpoint answered.
+  if (outcome.status === "completed" || outcome.errorCode === "output_truncated") {
+    return { ok: true };
+  }
   if (outcome.status === "retryable" && sawContent) return { ok: true };
   return { ok: false, message: outcomeDetail(outcome) };
 }

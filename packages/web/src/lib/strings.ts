@@ -304,6 +304,8 @@ export const zh = {
         envOnly: "环境变量里的模型密钥无法同步到这台机器，请先手动配置模型密钥。",
         skippedTitle: "这些模型没有同步到这台机器：",
         skippedModel: (model: string, reason: string) => `${model}：${reason}`,
+        /** Why a built-in model of this server was refused: the machine's build does not list it yet. */
+        notInMachineBuild: "这台机器的版本还没有这个内置模型；请先更新这台机器，再同步配置。",
       },
       /**
        * The one sentence under the toolbar while some of its verbs wait: why, said plainly. The
@@ -1970,6 +1972,8 @@ export const zh = {
       `这个 Agent 在 ${machine} 上：设置、对话与删除都在那台机器上进行，和本服务端同 id 的 Agent 互不相干。`,
     /** The disabled Usage button on a machine's Agent: what the usage center counts. */
     usageThisServerOnly: "成本中心只统计本服务端的 Agent",
+    /** Why a connected machine's Agent cards wait: its list has not answered in this page load yet. */
+    readingMachineAgents: (machine: string): string => `正在读取 ${machine} 的 Agent…`,
     /** Delete's confirmation for a machine's Agent: the machine it is deleted on. */
     deleteConfirmOnMachine: (name: string, machine: string): string =>
       `确认删除 ${machine} 上的 Agent「${name}」？它在那台机器上的目录（含全部 Trace）将被递归删除，不可恢复。`,
@@ -2042,7 +2046,7 @@ export const zh = {
     apiReadDocs: "查看使用文档",
     apiCopyAgentPrompt: "复制给 Agent 的提示词",
     apiAgentPrompt: (docsUrl: string, baseUrl: string, agentRef: string) =>
-      `请先阅读 PenguinHarness Agent API 使用文档：${docsUrl}，然后帮我编写调用此 Agent 的代码。\n\nBase URL: ${baseUrl}\nAgent ID: ${agentRef}\n\n使用 @prismshadow/amsp SDK：stream() 读取事件流，await run() 获取完整结果。需要密钥时，从 PENGUIN_AGENT_KEY 环境变量读取，不要硬编码。用 sessionId 继续已有会话。按文档处理审批请求和 HTTP 429；收到 429 时遵循 Retry-After。`,
+      `请先阅读 PenguinHarness Agent API 使用文档：${docsUrl}，然后帮我编写调用此 Agent 的代码。\n\nBase URL: ${baseUrl}\nAgent ID: ${agentRef}\n\n使用 @prismshadow/amsp SDK：stream() 逐条读取记录，await run() 获取完整结果。需要密钥时，从 PENGUIN_AGENT_KEY 环境变量读取，不要硬编码。用 sessionId 继续已有会话。按文档处理审批请求和 HTTP 429；收到 429 时遵循 Retry-After。`,
     apiSessionSettings: "新会话设置",
     apiSessionSettingsHint:
       "应用于之后新建的 API 会话。模型留空使用 Project 默认模型，思考等级留空使用 Agent 配置，工作区留空则创建临时工作区。",
@@ -2104,7 +2108,8 @@ export const zh = {
     apiTryCacheRead: "缓存读",
     apiTryCacheWrite: "缓存写",
     apiTryElapsed: "用时",
-    apiTryStreamBroken: "事件流在 run.done 之前结束。",
+    apiTryStreamBroken: "事件流在 data: [DONE] 之前结束。",
+    apiTryUnfinished: "运行没有走到终点：最后一个 task_begin 没有闭合。",
   },
 
   models: {
@@ -2223,8 +2228,12 @@ export const zh = {
         "- 不要读取或改动 .project_config.toml，配置只经 penguin 命令。",
         `- 最后运行 \`penguin config model list --project-id ${projectId} --root <数据根目录>\` 把结果列给我。`,
       ].join("\n"),
-    /** Penguin Go's "Sync models" (in its Connected menu) adds the models the platform newly offers; it never rewrites the ones already here. */
-    platformSyncAdded: (n: number): string => `已新增 ${n} 个模型`,
+    /** Penguin Go's "Sync models" adds missing models and refreshes existing prices and promotions; names only the non-zero counts (both zero is `platformUpToDate`). */
+    platformSyncResult: (added: number, updated: number): string => {
+      if (added === 0) return `已更新 ${updated} 个模型`;
+      if (updated === 0) return `已新增 ${added} 个模型`;
+      return `已新增 ${added} 个模型，更新 ${updated} 个模型`;
+    },
     platformUpToDate: "已是最新",
     homepage: "模型主页",
     speedTest: "测速",
@@ -2280,8 +2289,8 @@ export const zh = {
       `已检测为 ${protocol}，base URL 已整理为 ${url}`,
     /** The ONE failure toast: 所有失败情形共用，只讲用户能动手改的两件事。 */
     detectFailedBody: "无法检测接口协议，请检查 API Key 与 base URL。",
-    /** 视觉能力探测失败：不是协议问题，别把人引去查 API Key 与 base URL。 */
-    detectVisionFailedBody: "视觉能力检测失败：模型没有返回可判断的结果，开关保持原样。",
+    /** The vision probe learned nothing (auth, network, an unrelated 400): not a protocol problem, so it must not send the reader to the key or the URL. */
+    detectVisionFailed: "无法判断该模型是否接受图片输入，视觉保持不变",
     /** 保存时检测无结果：按兼容协议继续保存。 */
     detectFellBack: "未检测到协议，已按 OpenAI Chat Completions 保存",
     /** Add-dialog note for custom / user-defined groups (protocol selectable): replaces the fixed-OpenAI wording. */
@@ -2359,6 +2368,8 @@ export const zh = {
     priceCacheRead: "缓存命中价格",
     priceCacheWrite: "缓存未命中价格",
     priceOutput: "输出价格",
+    /** The price fields' placeholder: a model with no prices is left out of every cost (the three are filled together or not at all). */
+    priceBlankHint: "留空则不计算费用",
     /** Line under the model dialog's price fields on a row with a running promotion: the fields hold the list price, and changing it cancels the promotion. */
     promotionPriceHint: (pct: number): string =>
       `此处为牌价，当前促销在此基础上省 ${pct}%；修改价格会取消促销`,
@@ -2368,6 +2379,10 @@ export const zh = {
     apiKey: "API key",
     apiKeyKeepHint: "留空保留现有 key",
     apiKeyEnvHint: (envKey: string): string => `留空则使用环境变量 ${envKey}`,
+    /** The API key placeholder where nothing covers a blank field: no stored key, no group key that reaches the model, no environment variable the server reports set. */
+    apiKeyEnterHint: "请填写 API key",
+    /** The API key placeholder where a blank key is called without one: an open MMSP server or a vLLM server, with no stored key, group key or set variable. */
+    apiKeyKeylessHint: "留空则不使用 API key",
     keyConfigured: "已配置 key",
     clearApiKey: "清除已存 API key",
     baseUrl: "自定义 base URL",
@@ -2402,8 +2417,10 @@ export const zh = {
     groupSettingsTitle: (label: string): string => `${label} 分组设置`,
     /** The clear box under a stored group key. */
     clearGroupKey: "清除分组密钥",
-    /** A blank base URL that nothing fills: the group settings' placeholder, and a model's where its group sets none. */
-    baseUrlNone: "未设置：使用客户端默认端点",
+    /** The base URL placeholder where no group setting fills a blank field and none is required; it names no URL. */
+    baseUrlDefault: "留空使用默认 base URL",
+    /** The base URL placeholder where the field is required and empty: a blank one cannot be saved. */
+    baseUrlEnterHint: "请填写 base URL",
     /** The group settings' Detect while neither the field nor the group holds a base URL. */
     detectNeedsBaseUrl: "先填写 base URL",
     /** The protocol menu's first row in the group settings: the group sets none. */
@@ -2532,8 +2549,8 @@ export const zh = {
       moonshot:
         "缺省端点为国内版（api.moonshot.cn）；platform.kimi.com（国际）的 key 需在环境中同时设置 MOONSHOT_BASE_URL=https://api.moonshot.ai/v1，或在此填写 key 并填该 base URL",
     } as Record<string, string | undefined>,
-    envBaseUrlNote: (envBaseUrlKey: string): string =>
-      `请求发往该客户端的默认端点；设置了 ${envBaseUrlKey} 时发往该地址`,
+    envBaseUrlNote: (defaultBaseUrl: string, envBaseUrlKey: string): string =>
+      `请求发往 ${defaultBaseUrl}；环境里设置了 ${envBaseUrlKey} 时改发往该地址`,
     confirmVisionModelTitle: "设为视觉代理模型",
     confirmVisionModel: (name: string): string =>
       `确定把「${name}」设为视觉代理模型？不支持图片的模型用 read_file 读图时将由它代读。`,
@@ -2949,6 +2966,10 @@ export const zh = {
     sharedTag: "所有机器共用",
     sharedHint: "在 Project 配置中对所有机器统一管理，不能在这里移除。",
     machineUnreadable: (name: string, reason: string) => `无法读取 ${name} 运行的插件：${reason}`,
+    /** A machine out of reach, as the header's machine picker lists it. */
+    machineOutOfReach: (machine: string) => `${machine}（不可达）`,
+    /** A manage-installs row whose machine has not answered yet: its button waits for it. */
+    waitingFor: (machine: string) => `等待 ${machine} 答复`,
     /** The header button (admin only) that opens the Settings dialog on its Plugins page. */
     openSettings: "设置",
     pageDesc:
@@ -2993,6 +3014,8 @@ export const zh = {
       failed: (reason: string) => `加载失败：${reason}`,
       elsewhere: (machines: string) => `只在 ${machines} 上运行，本机不运行`,
       unsynced: "已安装，尚未同步到该机器",
+      /** Appended to a library status counted with Agents on a machine out of reach. */
+      lastSeenOn: (n: number) => `（含 ${n} 个在不可达机器上的 Agent，按上次看到）`,
     },
     noMatch: "没有匹配的插件。",
     /** The description of a shipped package the registry has no entry for. */
@@ -3863,11 +3886,13 @@ Benchmark：
     subagent: "子会话",
     subagentRunning: "运行中",
     /**
-     * Abort banner (user interruptions only). The cause localizes from `errorCode`;
-     * `errorMessage` (raw, untranslatable) rides verbatim. A legacy Trace without a code
-     * renders its English `reason` prose as-is.
+     * Abort banner (user interruptions, and the turn cap). The cause localizes from
+     * `errorCode`; `errorMessage` (raw, untranslatable) rides verbatim. The turn cap's line is
+     * localized whole (its message only restates the cap in English). A legacy Trace without a
+     * code renders its English `reason` prose as-is.
      */
     aborted: (item?: { errorCode?: string; errorMessage?: string; reason?: string }) => {
+      if (item?.errorCode === "max_turns") return "[已停止]：已达到单次任务最大轮数";
       const cause =
         item?.errorCode === "user_abort"
           ? "用户中断"
@@ -3904,9 +3929,11 @@ Benchmark：
               ? "网络或服务暂时不可用"
               : kind === "image_rejected"
                 ? "模型服务拒绝了本轮输入中的图片（已换成文字说明）"
-                : kind === "failed"
-                  ? "模型服务返回错误"
-                  : "请求失败";
+                : kind === "output_truncated"
+                  ? "模型输出达到输出上限，被截断"
+                  : kind === "failed"
+                    ? "模型服务返回错误"
+                    : "请求失败";
       const action =
         state === "gaveUp"
           ? `第 ${attempt} 次尝试后放弃${errorMessage ? `：${errorMessage}` : ""}`
@@ -4199,10 +4226,11 @@ Benchmark：
     copyCode: "复制代码",
     copyReply: "复制回复",
     /**
-     * The words around a reply's A2UI blocks (a choice, a form, steps, a callout, a diagram, and
-     * the weather, clock, countdown and metrics widgets), handed to the UI package that draws
-     * them (lib/ui-strings.ts). Of the four tone names, a warning is about loss or harm and a
-     * caution about something recoverable breaking, so the two must not read as the same level.
+     * The words around a reply's A2UI blocks (a choice, a form, steps, a callout, a diagram, a
+     * chart, and the weather, clock, countdown, metrics and resources widgets), handed to the UI
+     * package that draws them (lib/ui-strings.ts). Of the four tone names, a warning is about
+     * loss or harm and a caution about something recoverable breaking, so the two must not read
+     * as the same level.
      */
     a2ui: {
       /** The language these words are in: widgets format numbers, dates and weekdays in it. */
@@ -4228,6 +4256,10 @@ Benchmark：
       /** A form's number stepper: add or subtract one step. */
       stepUp: "增加",
       stepDown: "减少",
+      /** A form field's error line when the model gave no hint and the rule has no symbols. */
+      invalid: "值无效",
+      /** A form dropdown's empty first row, when the model wrote no placeholder. */
+      choose: "请选择…",
       /** The weather conditions, by the catalog's key (the same words as core's fallback). */
       conditions: {
         clear: "晴",
@@ -4272,6 +4304,33 @@ Benchmark：
       /** Which way a reading moved, read out before its change. */
       deltaUp: "上升",
       deltaDown: "下降",
+      /** A chart's kind: its name when the model gave no title, and the lead of its summary. */
+      chartKind: {
+        line: "折线图",
+        area: "面积图",
+        bar: "柱状图",
+        pie: "饼图",
+        scatter: "散点图",
+        histogram: "直方图",
+        gauge: "仪表",
+      },
+      /** A chart summary's counts: the categories (slices, bins) and the series. */
+      categories: (n: number) => `${n} 个类别`,
+      seriesCount: (n: number) => `${n} 个系列`,
+      /** The system-resource board's name when the model named no host, and its sections. */
+      resources: "系统资源",
+      cpu: "CPU",
+      memory: "内存",
+      swap: "交换",
+      disk: "磁盘",
+      network: "网络",
+      load: "负载",
+      uptime: "运行时间",
+      /** The network chart's two series. */
+      received: "接收",
+      sent: "发送",
+      /** The network chart's caption: its readings carry no times, only their count and order. */
+      lastReadings: (n: number) => `近 ${n} 次读数`,
     },
     forkSession: "从这里分叉对话",
     forkSessionConfirmBody: "将把这段对话（截至这条回复）复制为一个新对话，原对话保持不变。",
@@ -4296,7 +4355,7 @@ Benchmark：
     pinnedSession: "已置顶",
     /** The hover ellipsis button that opens the row's full context menu. */
     moreActions: "更多操作",
-    /** The bare "More" of a row that counts nothing (the UI package's MoreRow default, the Trace panel's file pills). */
+    /** The bare "More" of a row that counts nothing (the UI package's MoreRow default). */
     loadMore: "更多",
     /** A list's one reveal row (a sidebar group, time mode's whole list, an archive group): n = conversations that list still hides; a click shows ten more, fetching when the loaded ones run out. */
     expandRestSessions: (n: number) => `展开其余 ${n} 个对话`,
@@ -4967,11 +5026,13 @@ Benchmark：
     zoomIn: "放大",
     linkHint:
       "鼠标移到时间线段或消息行即可联动高亮，点击时间线段跳转到对应消息；图例可高亮同类；拖动下方滑块平移/缩放",
+    /** The Trace file picker's panel: its title, and how many files it lists. */
     filesTitle: "Trace 文件",
+    fileCount: (n: number) => `${n} 个文件`,
     toolCalls: "工具调用",
-    taskInput: "本轮输入 tokens",
-    taskOutput: "本轮输出 tokens",
     cacheHit: "命中缓存",
+    /** The uncached part of the input, beside its cache hits (a round's readings). */
+    cacheMiss: "未命中缓存",
     hitRate: "命中率",
     avgToolCalls: "每轮平均工具调用",
     /** The round-card badge reuses `chat.compactionTitle`, which names the mode (压缩 / 清空) and is the stem of the conversation row's state titles (压缩中 / 压缩完毕), so the Trace view and the conversation cannot drift apart; there is deliberately no Trace-local copy of that word. */
@@ -4979,6 +5040,14 @@ Benchmark：
     systemPrompt: "系统提示词",
     toolDefs: (n: number) => `工具定义（${n}）`,
     exportFile: "导出",
+    /** The round navigator the toolbar's rounds button opens: its title, and how many rounds it lists. */
+    roundNav: "轮次导航",
+    roundCount: (n: number) => `${n} 轮`,
+    /** The navigator's number box: its accessible name and its placeholder. */
+    jumpToRound: "跳转到轮次",
+    jumpToRoundPlaceholder: "轮次",
+    /** The panel a round's ring opens, and the name of the button standing in for a ring on a round with no context snapshot. */
+    roundReadings: "本轮读数",
   },
 
   benchmark: {

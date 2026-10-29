@@ -38,6 +38,7 @@ export type SyncedPrefField =
   | "notifications"
   | "launcherHidden"
   | "steerMode"
+  | "backgroundPreset"
   | "background";
 
 export interface SyncedPref {
@@ -102,6 +103,7 @@ export const SYNCED_PREFS: readonly SyncedPref[] = [
   flag("notifications", NOTIFICATIONS_KEY),
   flag("launcherHidden", LAUNCHER_HIDDEN_KEY),
   token("steerMode", STEER_MODE_KEY),
+  token("backgroundPreset", BACKGROUND_STORAGE_KEYS.preset),
   object("background", BACKGROUND_STORAGE_KEYS.settings),
 ];
 
@@ -190,9 +192,21 @@ export function planPrefs(
     if (wanted !== read(pref.key)) plan.cache.push([pref.key, wanted]);
   }
 
+  // A texture on screen means the picture is not used, so fetching it would download bytes
+  // nothing renders. The account's own texture counts, and so does one picked here and unsent.
+  const accountPreset =
+    typeof account.backgroundPreset === "string" && TOKEN.test(account.backgroundPreset)
+      ? account.backgroundPreset
+      : null;
+  const showsTexture =
+    accountPreset !== null ||
+    (options.pending.has("backgroundPreset") && read(BACKGROUND_STORAGE_KEYS.preset) !== null);
+
   if (options.pending.has(BACKGROUND_IMAGE)) {
     plan.upload.push(BACKGROUND_IMAGE);
     plan.image = "upload";
+  } else if (showsTexture) {
+    plan.image = cachedImage === null ? "keep" : "drop";
   } else if (typeof account.backgroundImageId === "string") {
     const sameImage =
       cachedImage !== null && read(BACKGROUND_IMAGE_ID_KEY) === account.backgroundImageId;

@@ -32,9 +32,9 @@ export type {
 
 export const BACKGROUND_IMAGE_KEY = BACKGROUND_STORAGE_KEYS.image;
 export const BACKGROUND_SETTINGS_KEY = BACKGROUND_STORAGE_KEYS.settings;
-// The presets are the web layer's own: the pre-paint script paints a stored picture, never a
-// bundled texture, so this key stays outside the shared store's vocabulary.
-export const BACKGROUND_PRESET_KEY = "penguin.background.preset";
+// The pre-paint script paints a stored picture, never a bundled texture, so this key is only read
+// after mount — but it lives in the shared store's vocabulary because the account syncs it.
+export const BACKGROUND_PRESET_KEY = BACKGROUND_STORAGE_KEYS.preset;
 
 /** The shared defaults, under the name this package's consumers already use. */
 export const BACKGROUND_DEFAULT_SETTINGS = DEFAULT_BACKGROUND_SETTINGS;
@@ -137,18 +137,19 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
             throw new Error("Invalid background image");
           }
           writeCached(BACKGROUND_IMAGE_KEY, next);
-          // The picture and a bundled texture are mutually exclusive sources.
-          localStorage.removeItem(BACKGROUND_PRESET_KEY);
+          // The picture and a bundled texture are mutually exclusive sources; clearing the texture
+          // is a write of its own so the account drops it too.
+          writeCached(BACKGROUND_PRESET_KEY, null);
           // A failed write leaves both the current source and the current controls untouched.
           setImageState(next);
           if (next === null) setPresetState(null);
         },
         setPreset: (next, nextSettings) => {
           if (next === null) {
-            localStorage.removeItem(BACKGROUND_PRESET_KEY);
+            writeCached(BACKGROUND_PRESET_KEY, null);
             writeCached(BACKGROUND_IMAGE_KEY, null);
           } else {
-            localStorage.setItem(BACKGROUND_PRESET_KEY, next);
+            writeCached(BACKGROUND_PRESET_KEY, next);
             writeCached(BACKGROUND_IMAGE_KEY, null);
             if (nextSettings !== undefined) {
               writeCached(BACKGROUND_SETTINGS_KEY, JSON.stringify(nextSettings));

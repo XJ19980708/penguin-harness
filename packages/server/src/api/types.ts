@@ -482,6 +482,12 @@ export interface UiPrefs {
    * image only when they differ.
    */
   backgroundImageId?: string | null;
+  /**
+   * The bundled texture the account shows, as a preset id from the Web App's texture list; absent
+   * or null leaves the picture. Texture and picture are mutually exclusive sources: choosing one
+   * clears the other, so a browser reads whichever the account names.
+   */
+  backgroundPreset?: string | null;
   [key: string]: unknown;
 }
 

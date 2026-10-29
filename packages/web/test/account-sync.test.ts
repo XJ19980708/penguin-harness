@@ -82,6 +82,42 @@ describe("reading the account's preferences into the cache", () => {
     expect(planPrefs({ backgroundImageId: "img-1" }, same, options).image).toBe("keep");
     expect(planPrefs({ themeId: "geek" }, same, options).image).toBe("drop");
   });
+
+  it("carries a bundled texture to the account and back, like any other preference", () => {
+    const store = memoryStorage({ "penguin.background.preset": "yuanshan" });
+    const importing = planPrefs({ lastProjectId: "p" }, store, {
+      importing: true,
+      pending: new Set(),
+    });
+    expect(importing.upload).toContain("backgroundPreset");
+
+    const applied = planPrefs(
+      { backgroundPreset: "sayram" },
+      memoryStorage({ "penguin.background.preset": "yuanshan" }),
+      { importing: false, pending: new Set() },
+    );
+    expect(applied.cache).toEqual([["penguin.background.preset", "sayram"]]);
+  });
+
+  it("does not fetch a picture the texture hides, whether the texture is the account's or an unsent edit", () => {
+    const store = () =>
+      memoryStorage({
+        "penguin.background.image": IMAGE,
+        "penguin.background.imageId": "img-1",
+      });
+    const options = { importing: false, pending: new Set<string>() };
+    expect(
+      planPrefs({ backgroundPreset: "pamir", backgroundImageId: "img-1" }, store(), options).image,
+    ).toBe("drop");
+    // Picked here and not yet sent: the cached texture is what the page shows, so still no fetch.
+    expect(
+      planPrefs(
+        { backgroundImageId: "img-1" },
+        memoryStorage({ "penguin.background.image": IMAGE, "penguin.background.preset": "yuanshan" }),
+        { importing: false, pending: new Set(["backgroundPreset"]) },
+      ).image,
+    ).toBe("drop");
+  });
 });
 
 describe("the account's draft keys", () => {

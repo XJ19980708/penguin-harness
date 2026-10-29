@@ -8,6 +8,7 @@
  */
 export const zh = {
   siteName: "PenguinHarness",
+  backToTop: "回到顶部",
 
   announcement: {
     label: "公告",
@@ -44,8 +45,16 @@ export const zh = {
   },
 
   hero: {
-    /** The slogan, in the positioning line's place and style. */
-    positioning: "让软件持续成长，让进化触手可及",
+    /** Two clauses keep the emphasized phrases and punctuation in each locale's reading order. */
+    positioning: {
+      growthLead: "让软件",
+      growth: "持续成长",
+      growthEnd: "，",
+      separator: "",
+      reachLead: "让进化",
+      reach: "触手可及",
+      reachEnd: "",
+    },
     /** The grey line under the slogan. */
     subtitle: "免费、稳定的 Agent 自进化框架",
     downloadCta: "下载桌面版",
@@ -157,31 +166,7 @@ export const zh = {
     /** The link to the same screen in the component gallery, full size. */
     open: "在画廊中打开",
     loading: "正在载入实时演示…",
-  },
-
-  /** The app live under the hero, and the three rows beside it (sections/showcase.tsx). */
-  showcase: {
-    /** Each `frame` names its frame for assistive technology. */
-    start: "开始页（实时演示）",
-    evolve: {
-      title: "一句话启动 Agent 自进化",
-      text: "说出要优化的智能体、评估集和目标分数，PenguinHarness 就会修改它、重新评测，分数更高才保留。",
-      link: "自进化怎么运作",
-      frame: "一轮自进化的对话（实时演示）",
-    },
-    evaluate: {
-      title: "可观测的自进化",
-      text: "六类能力的 Benchmark 为每个版本打分，附成本和耗时，按智能体和模型连成一条线，哪一版更好一眼可见。",
-      link: "了解评估中心",
-      frame: "评估中心里的一套 Benchmark（实时演示）",
-    },
-    toolkits: {
-      title: "前沿的自进化算法，提高准确率，降低成本",
-      /** `names`: the paper toolkits, already listed (OPRO、APE、…). */
-      text: (names: string) => `除了默认循环，${names} 各自是一个工具包，按原论文的流程运行。`,
-      link: "浏览插件库",
-      frame: "插件市场（实时演示）",
-    },
+    evolutionFrame: "一轮自进化的对话（实时演示）",
   },
 
   /** The self-evolution loop and its three recorded numbers (sections/self-improve.tsx). */

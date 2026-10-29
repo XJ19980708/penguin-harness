@@ -1,5 +1,6 @@
 /** Public-site controls without the application renderer, router or theme imports. */
 export * from "./components/site/site-header";
+export * from "./components/site/site-nav";
 export * from "./components/site/site-controls";
 export * from "./components/site/site-icons";
 export * from "./components/site/site-prefs";
@@ -8,6 +9,8 @@ export * from "./components/site/site-locale";
 export * from "./components/site/site-route-scroll";
 export * from "./components/site/site-footer";
 export * from "./components/site/site-pill";
+export * from "./components/site/site-playback";
+export * from "./components/site/site-scroll-top";
 export * from "./components/site/site-copy";
 export * from "./components/site/site-code";
 export * from "./components/site/site-highlight";

@@ -36,8 +36,9 @@ export const APP_FRAME = { width: 1280, height: 800 } as const;
 export const PHONE_FRAME = { width: 390, height: 844 } as const;
 
 /**
- * The app's language preference key (`state/locale.tsx`). The theme keys are the package's;
- * this one is the app's own and has no export, so it is spelled here and pinned by a test.
+ * The app's language preference key (`state/locale-pref.ts`). The theme keys are the package's;
+ * this one is the app's own, spelled here so the frame script imports nothing of the app, and
+ * pinned by a test.
  */
 export const APP_LANG_KEY = "penguin.lang";
 
@@ -88,6 +89,8 @@ export interface FrameTarget {
    * and hands the wheel to the page (app/main.tsx).
    */
   embedded?: boolean;
+  /** Play the self-evolution example in an embedded new conversation. */
+  autoplay?: "evolution";
   /**
    * Raise the notices a conversation can carry, which the demo account otherwise keeps down: the
    * initial-password banner across the main column and the context-window notice over the
@@ -104,6 +107,7 @@ export function appFrameSrc(base: string, prefs: FramePrefs, target: FrameTarget
   if (target.signedOut) params.set("auth", "out");
   if (target.open) params.set("open", target.open);
   if (target.embedded) params.set("embed", "1");
+  if (target.autoplay) params.set("autoplay", target.autoplay);
   if (target.notices) params.set("notices", "1");
   return `${base}${APP_FRAME_PATH}?${params.toString()}`;
 }
@@ -116,13 +120,19 @@ export type EmbeddedPrefs = Pick<FramePrefs, "theme" | "mode" | "lang">;
  * theme, the mode and the language are named, and the seeding script writes only what is named,
  * so the app boots on its own defaults for everything else, as for a first-time user.
  */
-export function embeddedFrameSrc(base: string, prefs: EmbeddedPrefs, route: string): string {
+export function embeddedFrameSrc(
+  base: string,
+  prefs: EmbeddedPrefs,
+  route: string,
+  autoplay?: FrameTarget["autoplay"],
+): string {
   const params = new URLSearchParams();
   params.set("route", route);
   params.set("theme", prefs.theme);
   params.set("mode", prefs.mode);
   params.set("lang", prefs.lang);
   params.set("embed", "1");
+  if (autoplay) params.set("autoplay", autoplay);
   return `${base}${APP_FRAME_PATH}?${params.toString()}`;
 }
 
@@ -141,6 +151,11 @@ export function parseFrameParams(search: string): FrameParams {
     ...(params.get("auth") === "out" ? { signedOut: true } : {}),
     ...(open ? { open } : {}),
     ...(params.get("embed") === "1" ? { embedded: true } : {}),
+    ...(params.get("embed") === "1" &&
+    route === "/chat/new" &&
+    params.get("autoplay") === "evolution"
+      ? { autoplay: "evolution" as const }
+      : {}),
     ...(params.get("notices") === "1" ? { notices: true } : {}),
   };
 }

@@ -51,6 +51,131 @@
 /* Keep the hero hierarchy consistent across languages and let narrow screens wrap naturally. */
 .hero-positioning {
   font-size: clamp(1.5rem, 4vw, 2.6rem);
+  line-height: 1.5;
+}
+.hero-positioning-clause {
+  display: inline-block;
+  max-width: 100%;
+}
+.hero-word {
+  --hero-word-cycle: 4.8s;
+  --hero-ink-edge: var(--color-brand-700);
+  --hero-ink-center: var(--color-brand-500);
+  --hero-word-delay: 0s;
+  position: relative;
+  isolation: isolate;
+  display: inline-block;
+  color: var(--hero-ink-edge);
+  white-space: nowrap;
+}
+.hero-word-reach {
+  --hero-word-delay: -2.4s;
+}
+.dark .hero-word {
+  --hero-ink-edge: var(--color-brand-300);
+  --hero-ink-center: var(--color-brand-500);
+}
+
+/* The color moves inside the glyphs; their size, baseline and advance never change. */
+.hero-word-ink {
+  position: relative;
+  display: inline-block;
+  /* deslop-ignore-next-line 06 -- One moving color emphasis, confined to the slogan's glyphs. */
+  background-image: linear-gradient(
+    110deg,
+    var(--hero-ink-edge) 40%,
+    var(--hero-ink-center) 50%,
+    var(--hero-ink-edge) 60%
+  );
+  background-size: 400% 100%;
+  background-position: 100% 50%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: hero-ink-flow var(--hero-word-cycle) ease-in-out var(--hero-word-delay) infinite;
+}
+
+/* One timeline reveals and grows the line, carrying the plane by its tail without scaling it. */
+.hero-word-trace {
+  position: absolute;
+  right: 0.65em;
+  bottom: -0.03em;
+  left: 0.04em;
+  height: 0.045em;
+  pointer-events: none;
+}
+.hero-word-flight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  opacity: 0;
+  animation: hero-flight-draw var(--hero-word-cycle) linear var(--hero-word-delay) infinite;
+}
+.hero-word-trail {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: currentColor;
+  opacity: 0.5;
+}
+.hero-word-plane {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  width: 0.65em;
+  height: 0.65em;
+  overflow: visible;
+  fill: none;
+  stroke-width: 1.5;
+  transform: translateY(-50%);
+}
+.hero-motion-paused .hero-word-ink,
+.hero-motion-paused .hero-word-flight {
+  animation-play-state: paused;
+}
+.content-motion-paused [class] {
+  animation-play-state: paused;
+}
+
+@keyframes hero-ink-flow {
+  0%,
+  12% {
+    background-position: 100% 50%;
+  }
+  68%,
+  100% {
+    background-position: 0% 50%;
+  }
+}
+@keyframes hero-flight-draw {
+  0%,
+  4% {
+    width: 0%;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  44% {
+    width: 100%;
+    opacity: 1;
+  }
+  48% {
+    opacity: 0;
+  }
+  100% {
+    width: 100%;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-word-ink,
+  .hero-word-flight {
+    animation: none;
+  }
 }
 .hero-automation {
   font-size: clamp(1rem, 2.1vw, 1.125rem);

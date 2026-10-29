@@ -84,10 +84,11 @@ import { loadPluginHost } from "../plugin/loader.js";
 import {
   useInstalledPluginPrefix,
   usePushedPluginLibrary,
+  usePushedBenchmarkDirectory,
   userText,
 } from "@prismshadow/penguin-core";
 import { pluginsPrefix } from "../plugin/install.js";
-import { pushedLibraryDir } from "./asset-archives.js";
+import { pushedLibraryDir, pushedBenchmarksDir } from "./asset-archives.js";
 import { UnsatisfiedPluginsError, bootWithoutUnsatisfied } from "../plugin/unsatisfied.js";
 import type { PluginSelection } from "../plugin/unsatisfied.js";
 import { takePushSlip } from "./push-plugins.js";
@@ -119,7 +120,8 @@ export interface PlatformApi extends Park {
    * In-process accessors for the one thing the seam cannot carry: a live socket. The
    * runtime's ws transport authenticates an upgrade, then hands the socket over with the
    * reference it authenticated — a pty's session, or the API socket's user — for the
-   * platform's protocol to drive.
+   * platform's protocol to drive. `url` is the upgrade's own: its public origin (the browser's
+   * scheme, host and port; http/public-origin.ts) with the path and query it asked for.
    */
   terminals(): TerminalManager;
   attachStream(ws: WebSocket, ref: AttachedStream, url: URL, log: (l: string) => void): void;
@@ -422,6 +424,7 @@ async function createInner(
   // it: a machine installed before a plugin existed otherwise never offers it, and a feature
   // that seeds an Agent with it (company mode's CEO, `agent-company`) fails on every attempt.
   if (caps !== null) usePushedPluginLibrary(pushedLibraryDir(caps.hmr.assetsDir()));
+  if (caps !== null) usePushedBenchmarkDirectory(pushedBenchmarksDir(caps.hmr.assetsDir()));
   // And it lists what an admin installed on this server: the packages of Skills, hooks or MCP
   // servers in the data root's plugin prefix, beside the ones the build ships.
   if (caps !== null) useInstalledPluginPrefix(pluginsPrefix(caps.config.root));

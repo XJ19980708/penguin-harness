@@ -1,5 +1,11 @@
-/** Local wallpaper preferences. Image bytes are stored separately so a slider writes only settings. */
-import { createContext, useContext, useState } from "react";
+/**
+ * Wallpaper preferences, which follow the account: the image and its display settings are
+ * cached in this browser (the pre-paint script paints from the cache) and written through
+ * lib/account-sync, which carries an edit to the account and has this provider read the cache
+ * again when the account's copy arrives. Image bytes are stored separately so a slider writes
+ * only settings.
+ */
+import { createContext, useContext, useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   BACKGROUND_STORAGE_KEYS,
@@ -9,6 +15,7 @@ import {
   readBackground,
 } from "@prismshadow/penguin-ui/boot";
 import type { BackgroundSettings } from "@prismshadow/penguin-ui/boot";
+import { subscribeAccountApplied, writeCached } from "../lib/account-sync/cache";
 
 // The keys, the vocabulary and the reader are the shared package's (`@prismshadow/penguin-ui/boot`):
 // the pre-paint script reads the same store, so a reload paints the image from the first frame.
@@ -107,6 +114,18 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
   const [preset, setPresetState] = useState(initial.preset);
   const [settings, setSettingsState] = useState(initial.settings);
 
+  // The account's background replaced the cached one at sign-in.
+  useEffect(
+    () =>
+      subscribeAccountApplied(() => {
+        const next = storedBackground();
+        setImageState(next.image);
+        setPresetState(next.preset);
+        setSettingsState(next.settings);
+      }),
+    [],
+  );
+
   return (
     <BackgroundContext.Provider
       value={{
@@ -114,14 +133,12 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         preset,
         settings,
         setImage: (next) => {
-          if (next === null) {
-            localStorage.removeItem(BACKGROUND_IMAGE_KEY);
-            localStorage.removeItem(BACKGROUND_PRESET_KEY);
-          } else {
-            if (!isBackgroundImage(next)) throw new Error("Invalid background image");
-            localStorage.setItem(BACKGROUND_IMAGE_KEY, next);
-            localStorage.removeItem(BACKGROUND_PRESET_KEY);
+          if (next !== null && !isBackgroundImage(next)) {
+            throw new Error("Invalid background image");
           }
+          writeCached(BACKGROUND_IMAGE_KEY, next);
+          // The picture and a bundled texture are mutually exclusive sources.
+          localStorage.removeItem(BACKGROUND_PRESET_KEY);
           // A failed write leaves both the current source and the current controls untouched.
           setImageState(next);
           if (next === null) setPresetState(null);
@@ -129,12 +146,12 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         setPreset: (next, nextSettings) => {
           if (next === null) {
             localStorage.removeItem(BACKGROUND_PRESET_KEY);
-            localStorage.removeItem(BACKGROUND_IMAGE_KEY);
+            writeCached(BACKGROUND_IMAGE_KEY, null);
           } else {
             localStorage.setItem(BACKGROUND_PRESET_KEY, next);
-            localStorage.removeItem(BACKGROUND_IMAGE_KEY);
+            writeCached(BACKGROUND_IMAGE_KEY, null);
             if (nextSettings !== undefined) {
-              localStorage.setItem(BACKGROUND_SETTINGS_KEY, JSON.stringify(nextSettings));
+              writeCached(BACKGROUND_SETTINGS_KEY, JSON.stringify(nextSettings));
             }
           }
           // Every write above precedes the state change: a refused write leaves the view alone.
@@ -143,7 +160,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
           if (nextSettings !== undefined) setSettingsState(nextSettings);
         },
         setSettings: (next) => {
-          localStorage.setItem(BACKGROUND_SETTINGS_KEY, JSON.stringify(next));
+          writeCached(BACKGROUND_SETTINGS_KEY, JSON.stringify(next));
           setSettingsState(next);
         },
       }}

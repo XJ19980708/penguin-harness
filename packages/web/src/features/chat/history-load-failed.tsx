@@ -3,14 +3,18 @@
  *
  * For a conversation on a machine the server cannot reach right now, the history lives on that
  * machine, so the failure is the machine's state and is said as such: the machine by its alias
- * and where its link stands, the Machines page's own retry status (the countdown, Retry now,
- * where it stopped), and the history loads again on its own once the machine is connected. The
- * transport's error — the machine's internal id, a SOCKS port — is kept one fold away for
- * whoever has to diagnose it, never the headline.
+ * and where its link stands; while the server brings it back or has stopped trying, the Machines
+ * page's own retry row (the attempt and the countdown to it with Retry now and Stop retrying, or
+ * where it stopped with Retry, the last failure behind its "?"); and in every state one press to
+ * the Machines page, where everything else that can be done about the machine lives. The history
+ * loads again on its own once the machine is connected. The transport's error — the machine's
+ * internal id, a SOCKS port — is kept one fold away for whoever has to diagnose it, never the
+ * headline.
  *
  * Anything else is the read's own failure: the error and a Retry.
  */
 import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router";
 import {
   Button,
   GlyphIcon,
@@ -43,6 +47,7 @@ export function HistoryLoadFailed({
   onRetry: () => void;
 }) {
   const machines = useMachines();
+  const navigate = useNavigate();
   const machineId = machineForSession(sessionId);
   const link = machineId === null ? null : machineLink(machines.state, machines.settled, machineId);
   const away = machineId === null ? null : machineAway(machines.state, machines.settled, machineId);
@@ -73,12 +78,14 @@ export function HistoryLoadFailed({
   }
 
   const entry = away.machine;
-  // The Machines page's Retry: the server tries the connection now. A refusal is said and
-  // rejects, so the press can be made again.
-  const reconnect = async (): Promise<void> => {
+  // The Machines page's presses: the server tries the connection now, or stops trying. A refusal
+  // is said and rejects, so the press can be made again.
+  const ask = async (
+    send: (projectId: string, machineId: string) => ReturnType<typeof api.reconnectMachine>,
+  ): Promise<void> => {
     if (projectId === null || entry === null) return;
     try {
-      machines.accept(await api.reconnectMachine(projectId, entry.id));
+      machines.accept(await send(projectId, entry.id));
     } catch (err) {
       toastError(apiErrorText(err));
       throw err;
@@ -91,14 +98,18 @@ export function HistoryLoadFailed({
         <GlyphIcon d={ICONS.server} size={ICON_SIZE.sectionMark} className="text-fg-subtle" />
         <h2 className="max-w-full break-words text-base font-semibold text-fg">{away.headline}</h2>
         <p className="text-sm text-fg-muted">{S.chat.machineAway.hint}</p>
-        {away.retry !== null ? (
+        {away.retry !== null && (
           <RetryStatus
-            {...retryStatus(away.retry, { onRetry: reconnect, held: false, layout: "block" })}
-            className="text-left"
+            {...retryStatus(away.retry, {
+              onRetry: () => ask(api.reconnectMachine),
+              onStop: () => ask(api.stopReconnectingMachine),
+              held: false,
+              size: "sm",
+            })}
+            className="justify-center text-left"
           />
-        ) : (
-          <Button onClick={onRetry}>{S.common.retry}</Button>
         )}
+        <Button onClick={() => navigate("/machines")}>{S.chat.machineAway.openMachines}</Button>
         <HelpFold title={S.chat.machineAway.details} className="mt-2 max-w-full text-left">
           <p className="break-words font-mono text-xs text-fg-muted">{error}</p>
         </HelpFold>

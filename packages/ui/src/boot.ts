@@ -181,6 +181,7 @@ export const THEME_FONTS: Readonly<Record<ThemeId, ThemeFonts>> = {
 export const BACKGROUND_STORAGE_KEYS = {
   image: "penguin.background.image",
   preset: "penguin.background.preset",
+  presetOpacity: "penguin.background.presetOpacity",
   settings: "penguin.background.settings",
 } as const;
 

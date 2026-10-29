@@ -1022,6 +1022,7 @@ export const zh = {
       loading: "正在读取…",
       preview: "背景预览",
       transparency: "图片透明度",
+      presetTransparency: "底纹透明度",
       mode: "显示方式",
       modes: { cover: "铺满", contain: "适应", tile: "平铺", original: "不缩放" },
       position: "对齐位置",
@@ -1040,7 +1041,7 @@ export const zh = {
       readError: "无法读取这张图片，或处理后仍过大。请换一张较小的图片。",
       storageError: "无法保存背景设置，请检查此浏览器的本地存储空间或权限。",
       presets: "内置底纹",
-      presetsInfo: "四套随明暗自动切换的内置底纹；选中后仍可单独调整透明度和显示方式。",
+      presetsInfo: "四套随明暗自动切换的内置底纹；可叠加在背景图片上，透明度单独调整。",
       presetNames: {
         yuanshan: "远山云鹤",
         shanshui: "山水",

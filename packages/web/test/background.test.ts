@@ -18,6 +18,7 @@ import { BackgroundControls } from "../src/features/settings/background-controls
 import {
   BACKGROUND_IMAGE_KEY,
   BACKGROUND_PRESET_KEY,
+  BACKGROUND_PRESET_OPACITY_KEY,
   BACKGROUND_SETTINGS_KEY,
   BackgroundProvider,
   backgroundStyle,
@@ -31,15 +32,27 @@ import { blockedStorage, stubLocalStorage } from "./helpers/storage";
 const picture = "data:image/png;base64,aW1hZ2U=";
 const nextPicture = "data:image/webp;base64,bmV3aW1hZ2U=";
 function Appearance() {
-  const { image, preset, settings } = useBackground();
-  const resolved = preset === null ? image : presetImage(preset, false);
+  const { image, preset, presetOpacity, settings } = useBackground();
+  const picture = image === null ? undefined : backgroundStyle(image, settings);
+  const texture =
+    preset === null
+      ? undefined
+      : {
+          backgroundImage: `url("${presetImage(preset, false)}")`,
+          backgroundSize: "cover",
+          backgroundPosition: "center bottom",
+          opacity: 1 - presetOpacity / 100,
+        };
   return h(AppShell, {
     nav: "Navigation",
-    background: resolved === null ? undefined : backgroundStyle(resolved, settings),
+    background: picture,
+    texture,
     children: h(BackgroundControls),
   });
 }
 const wallpaper = () => document.querySelector<HTMLElement>(".ui-shell > [data-wallpaper-layer]");
+const textureWallpaper = () =>
+  document.querySelector<HTMLElement>('.ui-shell > [data-wallpaper-layer="texture"]');
 const render = () => mount(h(BackgroundProvider, null, h(Appearance)));
 
 function storedPicture(settings?: string) {
@@ -85,20 +98,41 @@ describe("background choices", () => {
     expect(field(S.settings.background.transparency).value).toBe("35");
   });
 
-  it("applies a bundled texture with its own defaults and keeps it after reopening", async () => {
+  it("applies a bundled texture on its own layer and keeps it after reopening", async () => {
     const store = stubLocalStorage();
     const page = await render();
     await click(button(S.settings.background.presetNames.yuanshan));
-    expect(wallpaper()?.style.backgroundImage).toContain("yuanshan-light.webp");
-    expect(wallpaper()?.style.backgroundSize).toBe("cover");
-    expect(wallpaper()?.style.backgroundPosition).toBe("center bottom");
+    expect(textureWallpaper()?.style.backgroundImage).toContain("yuanshan-light.webp");
+    expect(textureWallpaper()?.style.backgroundSize).toBe("cover");
+    expect(textureWallpaper()?.style.backgroundPosition).toBe("center bottom");
     // The texture carries alpha, so the preset starts fainter than a picture's 80%.
-    expect(wallpaper()?.style.opacity).toBe("0.75");
+    expect(textureWallpaper()?.style.opacity).toBe("0.75");
     expect(store.getItem(BACKGROUND_PRESET_KEY)).toBe("yuanshan");
     await page.unmount();
     await render();
-    expect(wallpaper()?.style.backgroundImage).toContain("yuanshan-light.webp");
-    expect(field(S.settings.background.transparency).value).toBe("25");
+    expect(textureWallpaper()?.style.backgroundImage).toContain("yuanshan-light.webp");
+    // The texture has a transparency of its own, apart from the picture's control.
+    expect(field(S.settings.background.presetTransparency).value).toBe("25");
+  });
+
+  it("layers a texture over a picture, each with its own transparency", async () => {
+    const store = storedPicture();
+    const page = await render();
+    await click(button(S.settings.background.presetNames.shanshui));
+    expect(wallpaper()?.style.backgroundImage).toContain(picture);
+    expect(textureWallpaper()?.style.backgroundImage).toContain("shanshui-light.webp");
+    // Choosing a texture leaves the picture in place: the two layers are independent.
+    expect(store.getItem(BACKGROUND_IMAGE_KEY)).toBe(picture);
+
+    await type(field(S.settings.background.presetTransparency), "60");
+    expect(textureWallpaper()?.style.opacity).toBe("0.4");
+    expect(store.getItem(BACKGROUND_PRESET_OPACITY_KEY)).toBe("60");
+
+    await page.unmount();
+    await render();
+    expect(wallpaper()?.style.backgroundImage).toContain(picture);
+    expect(textureWallpaper()?.style.backgroundImage).toContain("shanshui-light.webp");
+    expect(field(S.settings.background.presetTransparency).value).toBe("60");
   });
 
   it("pairs each texture with the mode's own artwork", () => {

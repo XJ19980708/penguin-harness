@@ -35,6 +35,9 @@ export const BACKGROUND_SETTINGS_KEY = BACKGROUND_STORAGE_KEYS.settings;
 // The pre-paint script paints a stored picture, never a bundled texture, so this key is only read
 // after mount — but it lives in the shared store's vocabulary because the account syncs it.
 export const BACKGROUND_PRESET_KEY = BACKGROUND_STORAGE_KEYS.preset;
+export const BACKGROUND_PRESET_OPACITY_KEY = BACKGROUND_STORAGE_KEYS.presetOpacity;
+/** A texture carries its own alpha, so it starts fainter than a picture's 80% default. */
+export const BACKGROUND_PRESET_OPACITY_DEFAULT = 25;
 
 /** The shared defaults, under the name this package's consumers already use. */
 export const BACKGROUND_DEFAULT_SETTINGS = DEFAULT_BACKGROUND_SETTINGS;
@@ -61,34 +64,30 @@ export function presetImage(id: BackgroundPresetId, dark: boolean): string {
   return dark ? preset.dark : preset.light;
 }
 
-/**
- * What a preset is applied with. A user-chosen picture is opaque, so its default of 80% opacity
- * reads correctly; a texture already carries alpha, and the same 80% would fade it to nothing.
- * `cover` plus a bottom anchor is what the 16:9 artwork is drawn for.
- */
-export const BACKGROUND_PRESET_SETTINGS: BackgroundSettings = {
-  transparency: 25,
-  mode: "cover",
-  position: "center bottom",
-};
-
 export function backgroundStyle(image: string | null, settings: BackgroundSettings): CSSProperties {
   return backgroundLayerStyle(image, settings);
 }
 
-/** The stored background: the shared reader's image and settings, plus the preset only the web layer knows. */
+/**
+ * The stored background: the shared reader's picture and settings, plus the texture the web layer
+ * draws as a layer of its own. Picture and texture are independent, so both may be present.
+ */
 function storedBackground(): {
   image: string | null;
   preset: BackgroundPresetId | null;
+  presetOpacity: number;
   settings: BackgroundSettings;
 } {
   const read = (storage: Pick<Storage, "getItem">) => {
     const stored = readBackground(storage);
     const preset =
       BACKGROUND_PRESET_IDS.find((id) => id === storage.getItem(BACKGROUND_PRESET_KEY)) ?? null;
-    // A preset wins over a stale picture: the setters keep the two keys exclusive, so both can
-    // only be present if a write was interrupted, and the preset is what the user last chose.
-    return { image: preset === null ? stored.image : null, preset, settings: stored.settings };
+    return {
+      image: stored.image,
+      preset,
+      presetOpacity: readPresetOpacity(storage),
+      settings: stored.settings,
+    };
   };
   try {
     return read(localStorage);
@@ -97,13 +96,24 @@ function storedBackground(): {
   }
 }
 
+/** A stored 0–100 figure, or the texture's default when the key is absent or damaged. */
+function readPresetOpacity(storage: Pick<Storage, "getItem">): number {
+  const raw = storage.getItem(BACKGROUND_PRESET_OPACITY_KEY);
+  if (raw === null) return BACKGROUND_PRESET_OPACITY_DEFAULT;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return BACKGROUND_PRESET_OPACITY_DEFAULT;
+  return Math.min(100, Math.max(0, Math.round(parsed)));
+}
+
 interface BackgroundContextValue {
   image: string | null;
   preset: BackgroundPresetId | null;
+  /** The texture layer's transparency, independent of the picture's. */
+  presetOpacity: number;
   settings: BackgroundSettings;
   setImage: (image: string | null) => void;
-  /** Apply (or clear) a bundled texture; an optional settings object lands in the same write. */
-  setPreset: (preset: BackgroundPresetId | null, settings?: BackgroundSettings) => void;
+  setPreset: (preset: BackgroundPresetId | null) => void;
+  setPresetOpacity: (opacity: number) => void;
   setSettings: (settings: BackgroundSettings) => void;
 }
 const BackgroundContext = createContext<BackgroundContextValue | null>(null);
@@ -112,6 +122,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
   const [initial] = useState(storedBackground);
   const [image, setImageState] = useState(initial.image);
   const [preset, setPresetState] = useState(initial.preset);
+  const [presetOpacity, setPresetOpacityState] = useState(initial.presetOpacity);
   const [settings, setSettingsState] = useState(initial.settings);
 
   // The account's background replaced the cached one at sign-in.
@@ -121,6 +132,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         const next = storedBackground();
         setImageState(next.image);
         setPresetState(next.preset);
+        setPresetOpacityState(next.presetOpacity);
         setSettingsState(next.settings);
       }),
     [],
@@ -131,34 +143,24 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       value={{
         image,
         preset,
+        presetOpacity,
         settings,
         setImage: (next) => {
           if (next !== null && !isBackgroundImage(next)) {
             throw new Error("Invalid background image");
           }
           writeCached(BACKGROUND_IMAGE_KEY, next);
-          // The picture and a bundled texture are mutually exclusive sources; clearing the texture
-          // is a write of its own so the account drops it too.
-          writeCached(BACKGROUND_PRESET_KEY, null);
-          // A failed write leaves both the current source and the current controls untouched.
+          // A failed write leaves the current picture untouched; the texture layer is independent.
           setImageState(next);
-          if (next === null) setPresetState(null);
         },
-        setPreset: (next, nextSettings) => {
-          if (next === null) {
-            writeCached(BACKGROUND_PRESET_KEY, null);
-            writeCached(BACKGROUND_IMAGE_KEY, null);
-          } else {
-            writeCached(BACKGROUND_PRESET_KEY, next);
-            writeCached(BACKGROUND_IMAGE_KEY, null);
-            if (nextSettings !== undefined) {
-              writeCached(BACKGROUND_SETTINGS_KEY, JSON.stringify(nextSettings));
-            }
-          }
-          // Every write above precedes the state change: a refused write leaves the view alone.
+        setPreset: (next) => {
+          writeCached(BACKGROUND_PRESET_KEY, next);
           setPresetState(next);
-          setImageState(null);
-          if (nextSettings !== undefined) setSettingsState(nextSettings);
+        },
+        setPresetOpacity: (next) => {
+          const clamped = Math.min(100, Math.max(0, Math.round(next)));
+          writeCached(BACKGROUND_PRESET_OPACITY_KEY, String(clamped));
+          setPresetOpacityState(clamped);
         },
         setSettings: (next) => {
           writeCached(BACKGROUND_SETTINGS_KEY, JSON.stringify(next));

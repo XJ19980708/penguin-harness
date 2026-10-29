@@ -281,7 +281,7 @@ export * from "./components/shell/launcher/launcher";
 // with the hover actions it shares.
 export * from "./components/shell/app-shell/app-shell";
 export { WallpaperSurface } from "./components/shell/app-shell/wallpaper";
-export type { WallpaperStyle } from "./components/shell/app-shell/wallpaper";
+export type { WallpaperLayers, WallpaperStyle } from "./components/shell/app-shell/wallpaper";
 export * from "./components/shell/rail/rail";
 export * from "./components/shell/mobile-top-bar/mobile-top-bar";
 export * from "./components/shell/sidebar-frame/sidebar-frame";

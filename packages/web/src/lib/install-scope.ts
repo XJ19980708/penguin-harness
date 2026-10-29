@@ -111,6 +111,12 @@ export const KEY_RULES: readonly KeyRule[] = [
   },
   {
     kind: "exact",
+    key: "penguin.background.presetOpacity",
+    scope: "browser",
+    why: "How strongly the bundled texture layers over the picture; appearance only.",
+  },
+  {
+    kind: "exact",
     key: "penguin.background.settings",
     scope: "browser",
     why: "Wallpaper transparency, display mode and alignment for this browser.",

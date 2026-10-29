@@ -27,11 +27,13 @@
  */
 import type { ReactNode } from "react";
 import { NavigationBackdrop, WallpaperContext, WallpaperLayer } from "./wallpaper";
-import type { WallpaperStyle } from "./wallpaper";
+import type { WallpaperLayers, WallpaperStyle } from "./wallpaper";
 
 export interface AppShellProps {
-  /** Optional wallpaper; omitting it preserves every theme's normal shell surfaces. */
+  /** Optional wallpaper picture; omitting it preserves every theme's normal shell surfaces. */
   background?: WallpaperStyle;
+  /** A bundled texture drawn over the picture; either layer may stand alone. */
+  texture?: WallpaperStyle;
   /** The navigation column: the pinned sidebar, or the rail while the column is folded. */
   nav: ReactNode;
   /** Fold the navigation column to the rail's width. */
@@ -46,6 +48,7 @@ export interface AppShellProps {
 
 export function AppShell({
   background,
+  texture,
   nav,
   navCollapsed = false,
   children,
@@ -53,10 +56,12 @@ export function AppShell({
   overlays,
 }: AppShellProps) {
   const width = navCollapsed ? "w-12" : "w-64 lg:w-72";
+  const layers: WallpaperLayers | undefined =
+    background === undefined && texture === undefined ? undefined : { image: background, texture };
   return (
-    <WallpaperContext.Provider value={background}>
+    <WallpaperContext.Provider value={layers}>
       <div
-        data-wallpaper={background === undefined ? undefined : ""}
+        data-wallpaper={layers === undefined ? undefined : ""}
         className="ui-shell flex h-full pt-[env(titlebar-area-height,0px)]"
       >
         <WallpaperLayer />

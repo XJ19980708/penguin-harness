@@ -99,24 +99,34 @@ describe("reading the account's preferences into the cache", () => {
     expect(applied.cache).toEqual([["penguin.background.preset", "sayram"]]);
   });
 
-  it("does not fetch a picture the texture hides, whether the texture is the account's or an unsent edit", () => {
-    const store = () =>
-      memoryStorage({
-        "penguin.background.image": IMAGE,
-        "penguin.background.imageId": "img-1",
-      });
+  it("keeps the picture and the texture independent: a texture never hides the picture", () => {
     const options = { importing: false, pending: new Set<string>() };
-    expect(
-      planPrefs({ backgroundPreset: "pamir", backgroundImageId: "img-1" }, store(), options).image,
-    ).toBe("drop");
-    // Picked here and not yet sent: the cached texture is what the page shows, so still no fetch.
+    // The account names a newer image than the cached one: the picture is still fetched even
+    // though a texture is on screen too.
     expect(
       planPrefs(
-        { backgroundImageId: "img-1" },
-        memoryStorage({ "penguin.background.image": IMAGE, "penguin.background.preset": "yuanshan" }),
-        { importing: false, pending: new Set(["backgroundPreset"]) },
+        { backgroundPreset: "pamir", backgroundImageId: "img-2" },
+        memoryStorage({
+          "penguin.background.image": IMAGE,
+          "penguin.background.imageId": "img-1",
+          "penguin.background.preset": "yuanshan",
+        }),
+        options,
       ).image,
-    ).toBe("drop");
+    ).toBe("fetch");
+    // The texture and its opacity ride the ordinary preference path, alongside the picture.
+    const applied = planPrefs(
+      { backgroundPreset: "sayram", backgroundPresetOpacity: "60" },
+      memoryStorage({
+        "penguin.background.preset": "yuanshan",
+        "penguin.background.presetOpacity": "40",
+      }),
+      options,
+    );
+    expect(applied.cache).toEqual([
+      ["penguin.background.preset", "sayram"],
+      ["penguin.background.presetOpacity", "60"],
+    ]);
   });
 });
 

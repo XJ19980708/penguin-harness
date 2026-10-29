@@ -8,23 +8,29 @@ import {
   backgroundImageFromFile,
 } from "../../lib/background-image";
 import {
-  BACKGROUND_DEFAULT_SETTINGS,
   BACKGROUND_MODES,
   BACKGROUND_POSITIONS,
   BACKGROUND_PRESET_IDS,
-  BACKGROUND_PRESET_SETTINGS,
   backgroundStyle,
   presetImage,
   useBackground,
 } from "../../state/background";
 
 export function BackgroundControls({ dark = false }: { dark?: boolean }) {
-  const { image, preset, settings, setImage, setPreset, setSettings } = useBackground();
+  const {
+    image,
+    preset,
+    presetOpacity,
+    settings,
+    setImage,
+    setPreset,
+    setPresetOpacity,
+    setSettings,
+  } = useBackground();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const words = S.settings.background;
-  const resolved = preset === null ? image : presetImage(preset, dark);
 
   function commit(write: () => void) {
     try {
@@ -44,11 +50,7 @@ export function BackgroundControls({ dark = false }: { dark?: boolean }) {
     setError(null);
     try {
       const next = await backgroundImageFromFile(file);
-      // A picture is opaque: the texture's 25% default would leave it almost invisible.
-      commit(() => {
-        setImage(next);
-        if (preset !== null) setSettings(BACKGROUND_DEFAULT_SETTINGS);
-      });
+      commit(() => setImage(next));
     } catch {
       setError(S.settings.background.readError);
     } finally {
@@ -69,15 +71,7 @@ export function BackgroundControls({ dark = false }: { dark?: boolean }) {
                 aria-pressed={active}
                 aria-label={words.presetNames[id]}
                 disabled={busy}
-                onClick={() =>
-                  commit(() =>
-                    setPreset(
-                      id,
-                      // Switching between textures keeps the user's transparency and alignment.
-                      preset === null ? BACKGROUND_PRESET_SETTINGS : undefined,
-                    ),
-                  )
-                }
+                onClick={() => commit(() => setPreset(id))}
                 className={`h-9 w-16 shrink-0 rounded-sm border bg-cover bg-center transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-60 ${
                   active
                     ? "border-accent ring-2 ring-accent/40"
@@ -89,6 +83,27 @@ export function BackgroundControls({ dark = false }: { dark?: boolean }) {
           })}
         </div>
       </PrefRow>
+      {preset !== null && (
+        <PrefRow label={words.presetTransparency}>
+          <div className="flex min-w-0 items-center gap-3">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={presetOpacity}
+              aria-label={words.presetTransparency}
+              aria-valuetext={`${presetOpacity}%`}
+              disabled={busy}
+              className="w-32 min-w-0 accent-accent"
+              onChange={(event) => commit(() => setPresetOpacity(Number(event.target.value)))}
+            />
+            <span className="w-10 shrink-0 text-right text-xs tabular-nums text-fg-muted">
+              {presetOpacity}%
+            </span>
+          </div>
+        </PrefRow>
+      )}
       <PrefRow label={words.title} info={words.info}>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <input
@@ -106,7 +121,7 @@ export function BackgroundControls({ dark = false }: { dark?: boolean }) {
           <Button size="sm" disabled={busy} onClick={() => input.current?.click()}>
             {busy ? words.loading : image === null ? words.choose : words.replace}
           </Button>
-          {resolved !== null && (
+          {image !== null && (
             <Button size="sm" disabled={busy} onClick={() => commit(() => setImage(null))}>
               {words.remove}
             </Button>
@@ -118,13 +133,13 @@ export function BackgroundControls({ dark = false }: { dark?: boolean }) {
           {error}
         </p>
       )}
-      <Fold open={resolved !== null} className="background-settings-details">
+      <Fold open={image !== null} className="background-settings-details">
         <div
           role="img"
           aria-label={words.preview}
           className="relative h-24 overflow-hidden border-b border-line-muted bg-canvas"
         >
-          <div className="absolute inset-0" style={backgroundStyle(resolved, settings)} />
+          <div className="absolute inset-0" style={backgroundStyle(image, settings)} />
         </div>
         <PrefRow label={words.transparency}>
           <div className="flex min-w-0 items-center gap-3">

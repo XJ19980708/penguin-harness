@@ -886,7 +886,8 @@ export const en: Strings = {
       remove: "Remove",
       loading: "Loading…",
       preview: "Background preview",
-      transparency: "Transparency",
+      transparency: "Picture transparency",
+      presetTransparency: "Texture transparency",
       mode: "Display",
       modes: { cover: "Cover", contain: "Fit", tile: "Tile", original: "No scaling" },
       position: "Alignment",
@@ -908,7 +909,7 @@ export const en: Strings = {
         "Could not save the background. Check this browser's local storage space or permissions.",
       presets: "Built-in textures",
       presetsInfo:
-        "Four bundled textures that switch with light and dark; transparency and display stay adjustable.",
+        "Four bundled textures that switch with light and dark; they layer over the background picture, with their own transparency.",
       presetNames: {
         yuanshan: "Distant peaks",
         shanshui: "Landscape",

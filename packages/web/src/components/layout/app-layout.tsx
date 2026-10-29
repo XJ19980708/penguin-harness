@@ -415,13 +415,22 @@ export function AppLayout() {
 
   const background = useBackground();
   const { dark } = useTheme();
-  const wallpaper =
-    background.preset === null ? background.image : presetImage(background.preset, dark);
+  const picture =
+    background.image === null ? undefined : backgroundStyle(background.image, background.settings);
+  // The texture is a layer of its own, drawn over the picture and faded by its own figure.
+  const texture =
+    background.preset === null
+      ? undefined
+      : {
+          backgroundImage: `url("${presetImage(background.preset, dark)}")`,
+          backgroundSize: "cover",
+          backgroundPosition: "center bottom",
+          opacity: 1 - background.presetOpacity / 100,
+        };
   return (
     <AppShell
-      background={
-        wallpaper === null ? undefined : backgroundStyle(wallpaper, background.settings)
-      }
+      background={picture}
+      texture={texture}
       navCollapsed={collapsed}
       nav={
         collapsed ? (

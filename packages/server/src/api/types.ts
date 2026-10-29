@@ -488,6 +488,11 @@ export interface UiPrefs {
    * clears the other, so a browser reads whichever the account names.
    */
   backgroundPreset?: string | null;
+  /**
+   * How strongly the texture layers over the picture, as a 0–100 figure the Web App stores; absent
+   * leaves the Web App's default.
+   */
+  backgroundPresetOpacity?: string | null;
   [key: string]: unknown;
 }
 

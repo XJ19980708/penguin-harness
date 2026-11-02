@@ -89,7 +89,14 @@ describe("loadLibraryPlugins", () => {
   it("loads every plugin directory sorted by name: its npm version, a category, and a dated version on every part", async () => {
     const plugins = loadLibraryPlugins();
     expect(plugins.map((p) => p.name)).toEqual([...plugins.map((p) => p.name)].sort());
-    expect(plugins.length).toBeGreaterThan(0);
+    const { dependencies } = JSON.parse(
+      await fs.readFile(path.resolve(import.meta.dirname, "../package.json"), "utf8"),
+    ) as { dependencies: Record<string, string> };
+    expect(plugins.map((plugin) => plugin.packageName).sort()).toEqual(
+      Object.keys(dependencies)
+        .filter((name) => name.startsWith("@penguinharness/"))
+        .sort(),
+    );
     for (const plugin of plugins) {
       const pkg = JSON.parse(
         await fs.readFile(path.join(pluginsRoot, plugin.name, "package.json"), "utf8"),
@@ -217,12 +224,15 @@ describe("loadLibraryPlugins", () => {
     expect(Object.keys(files).some((rel) => rel.startsWith("reference/"))).toBe(true);
   });
 
-  it("every RSI toolkit other than the default ships the same evaluation reference", () => {
-    // Each algorithm toolkit evaluates through its own copy of one reference, so that it needs
-    // no other plugin; the copies must not drift apart.
-    const toolkits = loadLibraryPlugins().filter(
-      (p) => p.category === "rsi" && p.name !== "default-rsi-toolkit",
-    );
+  it("ACE, APE, AWM and OPRO ship the same evaluation reference", () => {
+    // These four methods share one evaluation protocol. Continuous-training methods have
+    // their own worker instructions; keep this check on the copies that must stay identical.
+    const toolkits = [
+      "ace-rsi-toolkit",
+      "ape-rsi-toolkit",
+      "awm-rsi-toolkit",
+      "opro-rsi-toolkit",
+    ].map((name) => libraryPlugin(name)!);
     expect(toolkits.length).toBeGreaterThan(1);
     const references = toolkits.map((plugin) => {
       // One Skill per algorithm toolkit, named like the plugin.
@@ -339,7 +349,11 @@ describe("groupPlugins / loadPluginGroups", () => {
       "ape-rsi-toolkit",
       "awm-rsi-toolkit",
       "default-rsi-toolkit",
+      "openskill-rsi-toolkit",
       "opro-rsi-toolkit",
+      "skilladam-rsi-toolkit",
+      "skillopt-rsi-toolkit",
+      "trace-rsi-toolkit",
     ]);
     expect(names("office-productivity")).toEqual([
       "a2ui",

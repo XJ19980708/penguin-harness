@@ -9,6 +9,27 @@ import type { ReleaseNote } from "./release-notes";
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
+    // A local build: upstream 0.2.18 plus the 2026-10-30 and 2026-11-02 batches. Its version
+    // compares equal to 0.2.18 (the pre-release suffix is ignored) and it sits first, so the
+    // dialog shows it as the newest note while 0.2.18 keeps the running-version pill.
+    version: "0.2.18-local.1",
+    date: "2026-11-02",
+    zh: [
+      "运行中发送新增「打断」：模型正在回答时可以立刻叫停，与「引导」「排队」并列。",
+      "远程对话的历史按最新优先加载并显示进度；hub 会缓存各机器的 Trace 历史，机器不在线时也能流式提供。",
+      "机器之间改用节奏化的 socket 流，机器应答压缩传输，没变化的应答直接复用（304）。",
+      "工作区选择器可以直接新建文件夹并选中；导入模型组时可以勾选要导入的模型。",
+      "终端在断网、切网后会话存活；单美元行内公式（$x$）正常渲染，shell 变量与价格保持文本。",
+    ],
+    en: [
+      "A running answer can be interrupted at once: Interrupt joins Steer and Queue as a mid-run send mode.",
+      "A remote conversation's history loads newest first with progress, and the hub keeps each machine's Trace lines so that history still streams while the machine is away.",
+      "Machines exchange paced socket streams, and a machine's answers cross the link compressed — an unchanged one as a 304.",
+      "The Workspace picker creates a folder and selects it, and importing a model group lets you tick which models to import.",
+      "The terminal survives a dropped or switched network, single-dollar inline math renders, and shell variables and prices stay text.",
+    ],
+  },
+  {
     version: "0.2.18",
     date: "2026-10-27",
     zh: [

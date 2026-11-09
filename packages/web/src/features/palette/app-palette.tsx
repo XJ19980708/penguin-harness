@@ -1,7 +1,7 @@
 /**
  * The app's command palette: which actions exist, the shortcut that opens it (the
- * `palette.toggle` command, ⌥⌘P / Ctrl+Alt+P by default), and its words. Mounted once in
- * AppLayout. The UI package's CommandPalette is the mechanism; this file is the registry: an
+ * `palette.toggle` command, ⌘⇧P / Ctrl+Shift+P by default), and its words. Mounted once in
+ * App. The UI package's CommandPalette is the mechanism; this file is the registry: an
  * action here, never a new global shortcut. An action opens an overlay over the current page
  * rather than navigating — closing it leaves the user exactly where they were.
  *
@@ -15,16 +15,17 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import type { HostCommand, HostCommandOffer } from "@prismshadow/penguin-server/api";
-import { CommandPalette, toastError, toastInfo } from "@prismshadow/penguin-ui";
-import type { PaletteAction } from "@prismshadow/penguin-ui";
+import { CommandPalette, toastError, toastInfo, type PaletteAction } from "@prismshadow/penguin-ui";
 import * as api from "../../api/endpoints";
 import { apiErrorText } from "../../lib/api-error";
+import { setSafeMode, useSafeMode } from "../../rescue/safe-mode";
+import { useAddedPaletteActions } from "../../lib/palette-actions";
 import { onCommand } from "../../lib/shortcuts/dispatcher";
 import { useShortcutLabel } from "../../lib/shortcuts/use-keymap";
 import { S } from "../../lib/strings";
 import { useAuth } from "../../state/auth";
 import { useLocale } from "../../state/locale";
-import { HarnessHistoryOverlay } from "../harness/harness-history-overlay";
+import { HarnessHistoryOverlay } from "../harness";
 
 /** A mount point with nothing to add shares one empty list, so the action memo stays put. */
 const NO_EXTRA: readonly PaletteAction[] = [];
@@ -97,6 +98,8 @@ export function hostCommandActions(
  * workbench route registers its way out here, which is why it exists at all on that route.
  */
 export function AppPalette({ extra = NO_EXTRA }: { extra?: readonly PaletteAction[] }) {
+  const added = useAddedPaletteActions();
+  const safe = useSafeMode();
   const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -117,7 +120,13 @@ export function AppPalette({ extra = NO_EXTRA }: { extra?: readonly PaletteActio
   const { locale } = useLocale();
   const [offers, setOffers] = useState<HostCommandOffer[]>([]);
   useEffect(() => {
-    if (!isAdmin) return;
+    // The palette now outlives a logout (it is mounted beside the route tree, not inside
+    // RequireAuth), so a demotion has to drop the cached admin-only offers too — not just
+    // stop refetching them — or the next non-admin session still lists them and eats a 403.
+    if (!isAdmin) {
+      setOffers([]);
+      return;
+    }
     let cancelled = false;
     void api
       .getHostCommands()
@@ -139,7 +148,14 @@ export function AppPalette({ extra = NO_EXTRA }: { extra?: readonly PaletteActio
 
   const actions = useMemo<PaletteAction[]>(
     () => [
+      ...added,
       ...extra,
+      {
+        id: "safe-mode",
+        label: safe ? S.rescue.leaveAction : S.rescue.enterAction,
+        keywords: ["safe mode", "contributions", "plugins"],
+        run: () => setSafeMode(!safe),
+      },
       {
         id: "harness-history",
         label: S.commandPalette.harnessHistory,
@@ -170,7 +186,7 @@ export function AppPalette({ extra = NO_EXTRA }: { extra?: readonly PaletteActio
         },
       },
     ],
-    [extra, offers, locale],
+    [added, safe, extra, offers, locale],
   );
 
   return (

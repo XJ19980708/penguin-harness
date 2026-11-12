@@ -25,6 +25,7 @@ import {
 } from "../../lib/workbench-theme";
 import {
   FILL_APP_MESSAGE,
+  runningWorkbenches,
   settleActiveTab,
   WORKBENCH_UPDATED_EVENT,
   workbenchAppPath,
@@ -78,10 +79,12 @@ export function useWorkbenchTabs(
     try {
       const res = await api.getWorkbenches(projectId, agentId, machineId);
       if (asked.current !== mine || isSafeMode()) return;
+      // A switched-off workbench loads nothing: it offers no tab and has nothing to report.
+      const running = runningWorkbenches(res);
       setLoaded({
         scope,
-        tabs: workbenchTabsOf(res.workbenches, machineId),
-        notices: workbenchNoticesOf(res.workbenches),
+        tabs: workbenchTabsOf(running, machineId),
+        notices: workbenchNoticesOf(running),
       });
     } catch {
       // The strip is a convenience over the chat: a failed list leaves it as it was.
@@ -220,7 +223,7 @@ export function WorkbenchFrame({
   /** The workbench and its versions are gone; the caller drops the tab (the list refetch confirms). */
   onRemoved: () => void;
 }) {
-  const { dark, themeId, accent, textSize, fontLatin, fontCjk } = useTheme();
+  const { dark, appliedTheme, accent, textSize, fontLatin, fontCjk } = useTheme();
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const [busy, setBusy] = useState<"reload" | "rollback" | "remove" | null>(null);
   // Removal is armed by a first click and sent by the second; the arm drops when the tab changes.
@@ -288,7 +291,7 @@ export function WorkbenchFrame({
   useEffect(() => {
     const id = requestAnimationFrame(applyTheme);
     return () => cancelAnimationFrame(id);
-  }, [applyTheme, dark, themeId, accent, textSize, fontLatin, fontCjk, tab.uiRev]);
+  }, [applyTheme, dark, appliedTheme, accent, textSize, fontLatin, fontCjk, tab.uiRev]);
 
   // A page is its own document: until it has loaded and been themed it paints the browser's
   // white canvas, and then its own unstyled markup — a white flash in a dark app, on every

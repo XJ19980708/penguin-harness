@@ -433,7 +433,7 @@ Project、Project 成员，以及保存在 `.project_config.toml` 中的 Project
 - `DELETE /api/projects/:projectId` 仅限所有者。`default_project` 与 CLI 共享，无法删除：返回 `409` `cannot_delete_default_project`。
 - 成员的写操作仅限所有者。桌面模式下，成员相关路由同样返回 `403 desktop_single_user`；参见[用户管理（仅管理员）](#用户管理仅管理员)。
 - `chat-defaults` 对应 `[default_chat]` 配置块：`{agentId?, workspace?, approvalMode?, thinkingLevel?}`。任何成员都可以读取，只有所有者可以替换。PUT 会替换整个块：省略的键清除对应默认值，空请求体则移除整个块。`agentId` 必须指向 Project 中已存在的 Agent（否则返回 `400` `unknown_agent`）。`workspace` 只是预填值，创建 Session 时才会校验；留空表示临时 Workspace。`thinkingLevel` 用作未在自身配置里设置思考等级的 Agent 的兜底值，不接受 `none`。默认模型不属于这个块，由模型相关路由管理。
-- `command-policy` 对应 `[command_policy]` 配置块：`{enabled?, rules: [{name, pattern, description?, enabled?}]}`。任何成员都可以读取，只有所有者可以替换。PUT 必须携带完整的规则列表（空数组表示没有任何规则），规则最多 64 条。每条规则需要名称（最多 64 个字符）和 pattern（最多 512 个字符，且必须能编译为正则表达式），description 最多 300 个字符。pattern 编译失败返回 `400` `invalid_rule_pattern`，其他格式错误的规则返回 `400` `invalid_rules`，`enabled` 不是布尔值返回 `400` `invalid_enabled`。参见[命令策略](/configuration#命令策略)。
+- `command-policy` 对应 `[command_policy]` 配置块：`{enabled?, rules: [{name, pattern, description?, enabled?}]}`。任何成员都可以读取，只有所有者可以替换。PUT 必须携带完整的规则列表（空数组表示没有任何规则），规则最多 64 条。每条规则需要名称（最多 64 个字符）和 pattern（最多 512 个字符，且必须能编译为正则表达式），description 最多 300 个字符。pattern 在服务端的引擎上编译失败返回 `400` `invalid_rule_pattern`，其 `details` 给出规则名 `rule`、规则在列表中从 0 起的下标 `index` 与引擎给的原因 `reason`；其他格式错误的规则返回 `400` `invalid_rules`，`enabled` 不是布尔值返回 `400` `invalid_enabled`。参见[命令策略](/configuration#命令策略)。
 
 ### 语义化 id 提议
 
@@ -528,12 +528,12 @@ flow id 指向的流程不存在时返回 `404 platform_auth_flow_not_found`。`
 | POST | `/agents/:agentId/vault/template-placeholder` | 在 Prompt 模板中插入 `{{VAULT}}` 占位符（仅所有者） |
 | GET | `/agents/:agentId/memory` | 记忆概览 |
 | POST | `/agents/:agentId/memory/template-placeholder` | 在 Prompt 模板中插入 `{{MEMORY}}` 占位符 |
-| GET | `/agents/:agentId/memory/scopes/:key/files` | 列出一个作用域的主题文件 |
-| GET / DELETE | `/agents/:agentId/memory/scopes/:key/files/:name` | 读取 / 删除一个主题文件 |
-| GET | `/agents/:agentId/memory/scopes/:key/export` | 将一个作用域导出为单个 JSON 文档 |
-| POST | `/agents/:agentId/memory/scopes/:key/import` | 将导出的作用域写回（仅所有者） |
-| GET | `/agents/:agentId/export` | 导出 Agent State 快照（tar.gz 下载） |
-| POST | `/agents/:agentId/import` | 导入快照：`{dataBase64, confirm?}`；不带 `confirm` 且版本冲突时返回 409 |
+| GET | `/agents/:agentId/memory/scopes/:key/files` | 列出一个作用域的主题文件、各自附带的文件，以及不属于任何主题的文件 |
+| GET / DELETE | `/agents/:agentId/memory/scopes/:key/files/:path` | 读取一个文件（主题或其附带的文件）/ 删除它（主题连同其文件夹） |
+| GET | `/agents/:agentId/memory/scopes/:key/export` | 将一个作用域的文件夹导出为 zip |
+| POST | `/agents/:agentId/memory/scopes/:key/import` | 将导出的 zip 写回（仅所有者） |
+| GET | `/agents/:agentId/archive` | 把 Agent 导出为其目录的 zip；查询参数选择部件与 Trace |
+| POST | `/agents/import` | 从 zip 或 tar.gz 快照包导入 Agent，请求体为原始文件 → 201 `{agent, mode, version, backup?, sessions}` |
 | GET | `/agents/:agentId/skills` | 已安装的 Skill（从插件库安装需通过 `/plugins`） |
 | POST | `/agents/:agentId/skills/template-placeholder` | 在 Prompt 模板中插入 `{{SKILLS}}` 占位符 |
 | POST | `/agents/:agentId/skills/archive` | 从 zip 安装 Skill：`{dataBase64, overwrite?}` → 返回 201 和 Skill 列表 |
@@ -556,7 +556,10 @@ flow id 指向的流程不存在时返回 `404 platform_auth_flow_not_found`。`
 
 ### Agent 路由
 
-- `POST /agents` 接受 `{agentId, name?, description?, plugins?, skillsDirectory?, directorySkills?, dataBase64?}`，返回 201 和 `{agent}`。`plugins` 指定要预装的插件库插件；遇到未知名称会拒绝请求，且不会创建 Agent 目录。`skillsDirectory` 和 `directorySkills` 从用户选择的目录导入 Skill（参见 [Session 创建与目录浏览](#session-创建与目录浏览)中的 `GET /dir-skills`），两者必须一起发送。`dataBase64` 让 Agent 从导出的快照启动，而不是使用默认模板。
+- `GET /agents` 给每个 Agent 带上 `author`（`user`、`agent` 或 `company`；配置里没有时视为 `user`）。Project 中某个组织的员工若配置里没有 `author`，列表第一次被读取时会为它写入 `author: company`。这是为该字段出现之前创建的 Agent 做的一次性迁移。
+- `POST /agents` 接受 `{agentId, name?, description?, author?, plugins?, skillsDirectory?, directorySkills?}`，返回 201 和 `{agent}`。`author` 缺省为 `user`，`user`、`agent`、`company` 以外的取值返回 400。`plugins` 指定要预装的插件库插件；遇到未知名称会拒绝请求，且不会创建 Agent 目录。`skillsDirectory` 和 `directorySkills` 从用户选择的目录导入 Skill（参见 [Session 创建与目录浏览](#session-创建与目录浏览)中的 `GET /dir-skills`），两者必须一起发送。
+- `GET …/archive` 返回 `<agentId>-<yyyymmdd>.zip`，即磁盘上的 Agent 目录：`<agentId>/agent_state/…`，以及所选 Session 全部分文件的 `<agentId>/traces/<date>/<session>_<NNN>.jsonl`。查询参数 `skills`、`hooks`、`memory`、`workbenches`、`workbenchData`（各 Workbench 的 `state.json`）与 `schedules` 取 `0` 或 `1`，除 `schedules` 外缺省都为 `1`；`traces` 取 `none`（缺省）、`last:<N>`（1~500，按最近活跃，Subagent 会话随其父）或 `<yyyy-mm-dd>..<yyyy-mm-dd>`（按日期目录，含两端）。快照排除的内容从不进包：`.vault.toml`、`*.penguin-tmp*`、`.git` 条目，以及 Workbench 的 `.build/` 与 `node_modules/`。Trace 中不少于 8 个字符的 vault 值写作 `[vault:<KEY>]`；配置原样导出，直接写在配置里的凭据也会随包带出。超出导入上限的导出返回 413 `archive_too_large`。
+- `POST /agents/import?agentId=<id>&overwrite=1` 的请求体就是文件本身，以 `application/octet-stream` 发送：最大 64MB，解包后至多 512MB、20 000 个条目。id 先取查询参数，没有则取 zip 的顶层目录名；tar.gz 快照包（1.0 之前仍接受）必须带查询参数。id 未被占用时新建 Agent，任何成员都可以。已被占用时返回 409 `agent_exists`（`details.agentId`），除非带 `overwrite=1`：仅 Project 所有者可用（否则 403），先把当前 State 打包为 `snapshots/import-backup-v<version>-<time>-<random>.tar.gz`（即 `backup`）。两种情况都以改名换入包内的 `agent_state/` 并保留 vault；Agent 的 Session、其他 Trace 与 API 密钥都保留。zip 含链接、条目越出顶层目录、名字含控制字符或两个名字只差大小写，或包里没有可读的 `system_config.yaml` 时返回 400，什么也不写。缺 `system_prompt` 的 `system_config.yaml` 叠加在模板配置之上（对象逐键合并，数组与标量整体替换），并按配置写入的同一套校验检查。随后 `traces/` 中的每个 Session 落为该 Agent 的 Session；本安装已有同 id 的跳过，并列在 `sessions.skipped` 中。导入的 Agent 保留其 `system_config.yaml` 里的 `author`（没有时视为 `user`）。
 - `POST …/config/mcp-test` 从本机连接一条 MCP 服务器配置，列出它的工具后断开，不写入任何 Agent State。配置条目格式有误时返回 400。服务器连不上不算 HTTP 错误，照常返回 `{ok: false, error}`。只有当条目与该 Agent 已保存的某个条目完全一致（名称与 `config` 都相同）时，才会像对话连接时一样，从 Agent 的 Vault 填入条目中的 `${KEY}` 引用；Vault 缺键时返回 `{ok: false, error}`，`error` 以 `needs setup:` 开头并列出键名，不会连接任何服务器。新的或改动过、又引用了 Vault 的条目返回 `{ok: false, saveFirst: true, error}`：什么都不填入，也不连接任何服务器，调用方因此无法把 Vault 中的值发往自己指定的地址。先保存条目，再测试。响应从不回显条目内容。
 - `POST …/config/kernel-update` 是 `reset` 的无损版本。它把缺失或仍保持旧默认值的设置标签页升级到当前默认值（记入 `advanced`），完整保留已自定义的标签页（记入 `kept`），并写入新的默认值版本（`kernelVersion`）。
 - `template-placeholder` 路由都是幂等的。Vault 和 Skills 两个路由会在 Prompt 模板中插入 `{{VAULT}}` 或 `{{SKILLS}}`；如果模板里是旧版硬编码的 `# Vault` 或 `# Skills` 小节，则替换成对应的占位符。记忆路由插入 `{{MEMORY}}`，在记忆功能推出之前创建的 Agent 就是通过它接入记忆的。
@@ -566,10 +569,10 @@ flow id 指向的流程不存在时返回 `404 platform_auth_flow_not_found`。`
 
 - `GET …/memory` 返回记忆开关、Prompt 模板是否带有 `{{MEMORY}}`，以及每个作用域的条目：用户作用域（`user`，`kind: "user"`）排在最前，随后是各个 Workspace。
 - 在这些作用域路由中，`:key` 是某个 Workspace 的 key 或 `user`。
-- `GET …/scopes/:key/files` 列出一个作用域的主题文件，包括各自的 frontmatter 和文件统计信息。
-- `DELETE …/scopes/:key/files/:name` 删除一个主题文件，并从 `MEMORY.md` 索引中删掉对应的行。
-- `GET …/scopes/:key/export` 把作用域的全部主题文件连同 `MEMORY.md` 合成一个 JSON 文档返回，以附件形式下载。
-- `POST …/scopes/:key/import` 接受 `{payload, mode?, confirm?}`。`mode` 取 `skip`（默认值，只添加作用域缺少的文件）、`overwrite`（替换同名文件）或 `replace`（还会删除文档中没有包含的文件）。凡会覆盖或删除文件的模式都需要 `confirm`，否则路由返回 409 `memory_import_confirm_required`。
+- `GET …/scopes/:key/files` 列出一个作用域的主题文件，包括各自的 frontmatter 和文件统计信息。每个主题带 `files`：其文件夹（主题文件名去掉 `.md`，如 `csv-tools.md` 的 `csv-tools/`）中任意层级的文件，各带在作用域中的 `path`（`csv-tools/lib/io.py`）、`size` 和 `modifiedAt`。`orphanFiles` 以同样形式列出旁边没有同名主题的文件夹中的文件。
+- `…/scopes/:key/files/:path` 接受文件在作用域中的路径，路径的每一段对应 URL 的一段：主题文件名，或附带文件的 `<folder>/<path>`。`GET` 返回主题（含 frontmatter 与 `files`），或附带文件的文本，此时 `file` 以路径作 `name`；超过 512 KB 的附带文件以 413 `memory_file_too_large` 拒绝，不是 UTF-8 文本的以 415 `memory_file_not_text` 拒绝。`DELETE` 连同文件夹删除主题文件，并从 `MEMORY.md` 索引中删掉对应的行；或删除一个附带文件以及因此变空的文件夹。两者都不跟随符号链接。
+- `GET …/scopes/:key/export` 以 zip 附件返回作用域的文件夹：`MEMORY.md`、全部主题文件和各文件夹中的文件都在 zip 根下，原样保存。超过 1,000 个文件、单个文件 5 MB 或总计 20 MB 时返回 413 `memory_too_large`。
+- `POST …/scopes/:key/import` 接受 `{dataBase64, mode?, confirm?}`（zip 的 base64），或 `{payload, mode?, confirm?}`（zip 之前导出的 `version: 1` JSON 文档）。一条记忆是主题文件及其同名文件夹，作为整体迁移；没有主题的文件夹自成一条记忆，记作 `<folder>/`。`mode` 取 `skip`（默认值，只添加作用域缺少的记忆）、`overwrite`（替换同名记忆，主题与文件夹一并替换）或 `replace`（还会删除导入中没有的记忆）。凡会覆盖或删除的模式都需要 `confirm`，否则路由返回 409 `memory_import_confirm_required`，其 `details` 以 JSON 数组给出 `overwritten` 与 `removed` 中的记忆名，并附 `replacesIndex`。zip 中不是记忆文件、越出作用域、以点开头或为链接的条目以 400 拒绝；记忆文件夹的位置或通往其文件的路径上有非目录时，路由返回 409 `memory_folder_not_a_directory`。两种情况都什么也不写入。
 
 ### 插件与钩子
 
@@ -653,6 +656,34 @@ interface AgentApiKeyInfo {
 | GET | `/api/languages/:id/grammar` | 单个语言的 TextMate 语法，形状即 Shiki 的 `loadLanguage` 所接受的；没有插件贡献的 id 返回 `404` |
 
 列表不带语法：一份语法有几十到几百 KB，只有对话中真正出现的语言才值得抓取。语法响应缓存一小时——它不换新 App 就不会变，而新 App 意味着一次新的页面加载。别名与文件扩展名必须*先于*语法到达：Shiki 只有在语法加载之后才会注册它自带的别名，而决定是否加载语法的，正是代码块的 info string。语法是数据而非代码：这条路径上不会执行插件提供的任何东西。
+
+## 主题包
+
+主题包是一个目录，含清单 `pack.json` 与几份样式表（PRFC-0026）。管理员按服务器以 zip 导入，这台服务器上的每个账户都能选用。任何主题包，内置的或导入的，都导出成同一形状的 zip。
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/themes` | 已导入的主题包，按导入先后：`{themes: ThemePackDto[]}`。不列内置包，Web App 自带它们 |
+| GET | `/api/themes/:id/files/<path>` | 主题包提供的一个文件：它的 `index.css`、一款字体或一幅插画。其余一律 `404` |
+| POST | `/api/themes[?replace=1]` | 仅管理员。请求体为 zip 原文，以 `application/octet-stream` 发送。返回 `201 {theme}` |
+| DELETE | `/api/themes/:id` | 仅管理员。返回 `204` |
+| GET | `/api/themes/:id/export` | 任何主题包（内置或导入）的 zip 附件 |
+
+- `ThemePackDto` 是规范化后的清单（`id`、`names`、`version`、`api`、`base`、`modes`、`swatches`、`accent`、`fonts`、`avatar?`）加上 `href` 与 `v`。`v` 是主题包内容的摘要，`href` 为 `/api/themes/<id>/files/index.css?v=<v>`。因此覆盖导入改动了任何内容，两者都会变化，缓存随之失效。
+- 导入在写入任何东西之前先校验。zip 的 `pack.json` 在根目录或唯一的一层顶级目录里。zip 只可含 `tokens.css`、`recipes.css`、`accents.css`、`fonts.css`、`sections/<hook>.css`、`fonts/*.woff2`、`art/*.svg|png|webp`、`README.md`、`LICENSE*` 与 `LICENSES/*.txt`，别无其他。上限为 200 个文件、zip 16 MiB、解压后 24 MiB、样式表合计 512 KiB。每份样式表按 PRFC-0026 的语法解析，存下的是解析器重新生成的文本，从不是上传的原文。之后还要过「干净的底线」的静态规则（R1、R2、R5–R11），一处命中也不许有。所存的 `index.css` 不含任何属于构建的内容。提供时在前面加上 App 样式表的完整层序声明，因此它先于 App 自己的样式表加载时（重新加载后首帧脚本正是这样做的），层序不变。列表与提供时用的 `v` 合进了这一次序，Web App 构建改变了次序，地址也随之改变。
+- 拒绝：
+  - `400` `theme_invalid`：`details` 为 `{file, reason, line?, column?}`，指向第一处被拒的内容。
+  - `400` `theme_id_reserved`：用了内置包的 id。
+  - `409` `theme_exists`：该 id 已导入，`details.themeId` 给出 id。带 `replace=1` 则覆盖。
+  - `413` `theme_too_large`。
+  - `422` `theme_api_unsupported`：主题包针对更新的主题 API。
+  - `503` `themes_unavailable`：服务器所带的 Web App 构建里没有可供校验的内置包源文件。
+  - `403` `admin_required`：成员的写操作。
+- 文件响应带它的类型，以及 `X-Content-Type-Options: nosniff`、`Cache-Control: private, max-age=31536000, immutable`、`Content-Security-Policy: sandbox; default-src 'none'` 与 `Cross-Origin-Resource-Policy: same-origin`。只提供该主题包 `installed.json` 所列的文件。
+- 删除内置包返回 `400` `theme_builtin`。未导入的 id 返回 `404` `theme_not_found`，导出未知 id 亦然。
+- 导入的包导出所存的原 zip。内置包取自服务器所带构建里它的源文件，离线可用。导出的形状就是导入所收的形状：白领的规则限定到 `:root[data-theme="modern"]`，字体全是应用共用字体的包不带 `fonts.css`。白领导出时不带 `recipes.css`，因为 `"base": "modern"` 的包从基准沿用白领的配方，导出的 `README.md` 写明了这一点。要做自己的主题包，就导出白领，把 `pack.json` 与选择器里的 id 改成自己的，再导入。极客会带着配方导出，配方里的干净底线命中要先清掉才能导入。
+- 主题包存在数据根的 `themes/<id>/`，每次上传的原 zip 留在 `themes/archives/`。主题包不同步到机器。
+- 每次导入、覆盖与删除，都向每个登录用户的事件流发送 `themes_changed`。
 
 ## 定时任务
 
@@ -864,7 +895,7 @@ Benchmark 属于 Project，不属于某个 Agent：一个 Benchmark 可以评估
 - 错误表把同一天里来源、错误码、分类和消息都相同的记录合为一行，带上次数 `count`、最近一次的时间 `ts` 和首次的时间 `firstTs`。`offset`、`limit` 和 `rows` 按行计；`total` 和仪表盘的汇总数字按记录计。`GET /usage` 与 `GET /usage/errors` 都接受可选的 `utcOffsetMinutes`，即读者所在时区相对 UTC 向东的分钟数（−840 到 840），它决定「同一天」按哪一天算；不传时按服务器自己的日期。
 - `DELETE /usage/errors` 接受与读取相同的过滤条件（`from` / `to` / `fromTs` / `toTs` / `agentId`），但不接受 `kind`，因为面板上没有这个控件。这里 `from` 和 `to` 都必填（否则返回 400），因为少一个边界，清空的就是整段历史，而不是过滤后的一部分。清空的范围与调用者读取的范围完全一致：管理员清空时，也会删掉只有管理员读取才能看到的未归属行；成员清空时则永远不会。
 - `GET /agents/:agentId/traces` 还接受 `limit` 和 `offset` 分页，以及 `category`（必须搭配 `limit`），用于只列出某一类别的 Session。分页列表使用与 Session 列表相同的两个类别，不含不属于任何类别的 `subagent` 与 `company` 会话；不带 `limit` 的完整目录列出所有 Trace。
-- 任何成员都可以下载 Trace。导入只有所有者能做，与 Agent State 快照导入一样，上限 14MB。导入的文件必须是有效的 Trace JSONL，首条记录必须是 `session_meta`，`session_id` 须可安全用作文件名。session id 与 Agent 已有的重复时拒绝导入（409 `trace_session_exists`），所以导入的文件总是成为新 Session 的 index 001，按首条记录的时间戳存入对应的本地日期目录。
+- 任何成员都可以下载 Trace。导入只有所有者能做，与用包覆盖 Agent 一样，上限 14MB。导入的文件必须是有效的 Trace JSONL，首条记录必须是 `session_meta`，`session_id` 须可安全用作文件名。session id 与 Agent 已有的重复时拒绝导入（409 `trace_session_exists`），所以导入的文件总是成为新 Session 的 index 001，按首条记录的时间戳存入对应的本地日期目录。
 
 ## Session 级端点
 
@@ -1377,7 +1408,7 @@ Agent 用 `penguin browser` 驱动的浏览器，路由位于 `/api/builtin-brow
 | --- | --- | --- |
 | 每个 Session | `GET /api/sessions/:sessionId/stream` | Session 的消息流和运行事件，包括子 Agent Session 的 `session_created` 以及目标模式事件 |
 | 每个 Session（AMSP） | `GET /api/sessions/:sessionId/amsp` | 只有 Session 的记录和 `ping`，与 Agent API 提供的相同；见 [Session 流](/amsp#session-流) |
-| 每个用户 | `GET /api/events` | `hello` 握手和跨 Session 的通知：`session_created`、`session_archived`、`session_deleted`、`session_state`、`session_background`、`session_approvals`、`session_title`、`schedule_fired`、`schedule_queued`、`web_updated`、公司模式的 `org_*` 事件，以及只发给管理员的 `machines_changed` |
+| 每个用户 | `GET /api/events` | `hello` 握手和跨 Session 的通知：`session_created`、`session_archived`、`session_deleted`、`session_state`、`session_background`、`session_approvals`、`session_title`、`schedule_fired`、`schedule_queued`、`web_updated`、`themes_changed`、公司模式的 `org_*` 事件，以及只发给管理员的 `machines_changed` |
 | 每个 Project 的机器 | `GET /api/projects/:projectId/machines/events` | 每台已连接机器自己的事件，各自带上来源机器的标记，由 hub 每台机器唯一的那次订阅合并而来（**socket hub 内每台机器一条事件流**） |
 
 ### 传输格式
@@ -1405,6 +1436,7 @@ export type ServerEvent =
   | { type: "hello" }
   | { type: "heartbeat" }
   | { type: "web_updated"; rev: string }
+  | { type: "themes_changed" }
   | { type: "machines_changed" }
   | { type: "machine_event"; machineId: string; event: ServerEvent }
   | { type: "session_created"; projectId: string; agentId: string; sessionId: string; source: SessionSource }
@@ -1434,6 +1466,7 @@ export type ServerEvent =
 | `hello` | 用户通道上的握手 |
 | `heartbeat` | 流自身的拍子，每 20 秒一次：出现在 `/api/events` 和机器的聚合流上，读取方据此分辨流是活着还是停住了 |
 | `web_updated` | 热更新替换了对外提供的 web 资源；客户端需重新加载 |
+| `themes_changed` | 导入、覆盖或删除了一个主题包；客户端重新读取 `GET /api/themes` |
 | `session_created` | 一个 Session 现在存在了：由 Web App、CLI、定时任务或 Agent 派生子 Session 创建 |
 | `session_archived` | Session 被归档或取消归档 |
 | `session_deleted` | Session 被删除 |

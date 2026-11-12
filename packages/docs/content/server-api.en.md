@@ -433,7 +433,7 @@ Projects, their members, and the Project-wide settings stored in `.project_confi
 - `DELETE /api/projects/:projectId` is owner only. `default_project` is shared with the CLI and cannot be deleted: `409` `cannot_delete_default_project`.
 - Member writes are owner only. In desktop mode the member routes also answer `403 desktop_single_user`; see [User Administration (admin only)](#user-administration-admin-only).
 - `chat-defaults` is the `[default_chat]` block: `{agentId?, workspace?, approvalMode?, thinkingLevel?}`. Any member can read it, and only the owner can replace it. A PUT replaces the whole block: an omitted key clears that default, and an empty body removes the block. `agentId` must name an existing agent of the Project (otherwise `400` `unknown_agent`). `workspace` is a prefill and is not checked until a Session is created; an empty value means a temporary Workspace. `thinkingLevel` is the fallback for agents whose config sets none, and `none` is not accepted. The default model is not part of this block; it stays with the model routes.
-- `command-policy` is the `[command_policy]` block: `{enabled?, rules: [{name, pattern, description?, enabled?}]}`. Any member can read it, and only the owner can replace it. A PUT always carries the full rule list (an empty array means no rules), with at most 64 rules. Each rule needs a name of up to 64 characters and a pattern of up to 512 characters that compiles as a regular expression, and a description may have up to 300 characters. A pattern that does not compile returns `400` `invalid_rule_pattern`, any other malformed rule returns `400` `invalid_rules`, and a non-boolean `enabled` returns `400` `invalid_enabled`. See [Command policy](/configuration#command-policy).
+- `command-policy` is the `[command_policy]` block: `{enabled?, rules: [{name, pattern, description?, enabled?}]}`. Any member can read it, and only the owner can replace it. A PUT always carries the full rule list (an empty array means no rules), with at most 64 rules. Each rule needs a name of up to 64 characters and a pattern of up to 512 characters that compiles as a regular expression, and a description may have up to 300 characters. A pattern that does not compile on the server's engine returns `400` `invalid_rule_pattern`, whose `details` carry the rule's name (`rule`), its 0-based place in the list (`index`) and the engine's `reason`; any other malformed rule returns `400` `invalid_rules`, and a non-boolean `enabled` returns `400` `invalid_enabled`. See [Command policy](/configuration#command-policy).
 
 ### Semantic id proposals
 
@@ -528,12 +528,12 @@ The paths below omit the `/api/projects/:projectId` prefix, except the global `/
 | POST | `/agents/:agentId/vault/template-placeholder` | Inserts the `{{VAULT}}` placeholder into the prompt template (owner only) |
 | GET | `/agents/:agentId/memory` | Memory overview |
 | POST | `/agents/:agentId/memory/template-placeholder` | Inserts the `{{MEMORY}}` placeholder into the prompt template |
-| GET | `/agents/:agentId/memory/scopes/:key/files` | Lists one scope's topic files |
-| GET / DELETE | `/agents/:agentId/memory/scopes/:key/files/:name` | Reads one topic file / deletes it |
-| GET | `/agents/:agentId/memory/scopes/:key/export` | Exports one scope as a single JSON document |
-| POST | `/agents/:agentId/memory/scopes/:key/import` | Writes an exported scope back (owner only) |
-| GET | `/agents/:agentId/export` | Exports the Agent State snapshot (tar.gz download) |
-| POST | `/agents/:agentId/import` | Imports a snapshot: `{dataBase64, confirm?}`; 409 on a version conflict without `confirm` |
+| GET | `/agents/:agentId/memory/scopes/:key/files` | Lists one scope's topic files, the files each keeps, and the files no topic keeps |
+| GET / DELETE | `/agents/:agentId/memory/scopes/:key/files/:path` | Reads one file, a topic or a file it keeps / deletes it (a topic with its folder) |
+| GET | `/agents/:agentId/memory/scopes/:key/export` | Exports one scope folder as a zip |
+| POST | `/agents/:agentId/memory/scopes/:key/import` | Writes an exported zip back (owner only) |
+| GET | `/agents/:agentId/archive` | Exports the agent as a zip of its directory; the query picks the parts and the Traces |
+| POST | `/agents/import` | Imports an agent from a zip, or a tar.gz snapshot package, sent as the raw body → 201 `{agent, mode, version, backup?, sessions}` |
 | GET | `/agents/:agentId/skills` | Installed Skills (library installs go through `/plugins`) |
 | POST | `/agents/:agentId/skills/template-placeholder` | Inserts the `{{SKILLS}}` placeholder into the prompt template |
 | POST | `/agents/:agentId/skills/archive` | Installs a Skill from a zip: `{dataBase64, overwrite?}` → 201 with the Skill list |
@@ -556,7 +556,10 @@ The paths below omit the `/api/projects/:projectId` prefix, except the global `/
 
 ### Agent routes
 
-- `POST /agents` takes `{agentId, name?, description?, plugins?, skillsDirectory?, directorySkills?, dataBase64?}` and answers 201 `{agent}`. `plugins` names library plugins to preinstall, and unknown names are rejected before the agent's directory exists. `skillsDirectory` and `directorySkills` import Skills from a directory the user picked (see `GET /dir-skills` under [Session Creation and Directory Browsing](#session-creation-and-directory-browsing)) and must be sent together. `dataBase64` starts the agent from an exported snapshot instead of the default template.
+- `GET /agents` lists each agent with its `author` (`user`, `agent` or `company`; a config without one reads as `user`). An employee of one of the Project's organizations whose config has no `author` gets `author: company` written into it the first time the list is read, a one-time migration for agents made before the field existed.
+- `POST /agents` takes `{agentId, name?, description?, author?, plugins?, skillsDirectory?, directorySkills?}` and answers 201 `{agent}`. `author` defaults to `user`; a value other than `user`, `agent` or `company` is a 400. `plugins` names library plugins to preinstall, and unknown names are rejected before the agent's directory exists. `skillsDirectory` and `directorySkills` import Skills from a directory the user picked (see `GET /dir-skills` under [Session Creation and Directory Browsing](#session-creation-and-directory-browsing)) and must be sent together.
+- `GET …/archive` answers `<agentId>-<yyyymmdd>.zip`, the agent's directory as it is on disk: `<agentId>/agent_state/…`, and `<agentId>/traces/<date>/<session>_<NNN>.jsonl` for every file of the chosen Sessions. The query takes `skills`, `hooks`, `memory`, `workbenches`, `workbenchData` (each workbench's `state.json`) and `schedules` as `0` or `1`, all `1` by default but `schedules`, and `traces` as `none` (the default), `last:<N>` (1–500 by last activity, a subagent Session following its parent) or `<yyyy-mm-dd>..<yyyy-mm-dd>` (date folders, both ends included). What a snapshot leaves out never travels: `.vault.toml`, `*.penguin-tmp*`, `.git` entries, and each workbench's `.build/` and `node_modules/`. A vault value of 8 characters or more in a Trace is written as `[vault:<KEY>]`; the config travels as it is, so a credential written there literally travels too. An export past what an import takes is 413 `archive_too_large`.
+- `POST /agents/import?agentId=<id>&overwrite=1` takes the file itself as the body, sent as `application/octet-stream`: up to 64MB, unpacking to at most 512MB and 20,000 entries. The id is the query's, else the zip's top-level folder; a tar.gz snapshot package, accepted until 1.0, needs the query. A free id creates the agent, as any member may. A taken one is 409 `agent_exists` with `details.agentId`, unless `overwrite=1`, which only the Project owner may send (403 otherwise): the current State is first packed into `snapshots/import-backup-v<version>-<time>-<random>.tar.gz` (`backup`). Either way the package's `agent_state/` replaces the State by rename and the vault is kept; the agent's Sessions, other Traces and API keys stay. A zip with a link, an entry outside its folder, a name with a control character or two names that differ only in letter case, and a package without a readable `system_config.yaml`, is a 400 that writes nothing. A `system_config.yaml` without `system_prompt` is laid over the template's config, objects merged key by key and arrays and scalars replaced, and checked as a config write. Then each Session in `traces/` lands as a Session of the agent; one whose id this install already has is skipped and listed in `sessions.skipped`. The agent keeps the `author` its `system_config.yaml` carries (none reads as `user`).
 - `POST …/config/mcp-test` connects to one MCP server entry from this host, lists its tools and disconnects, and writes nothing to the Agent State. A malformed entry returns 400. An unreachable server is a normal `{ok: false, error}` result. The entry's `${KEY}` references are filled in from the agent's vault only when the entry is saved on the agent exactly as sent, same name and same `config`, as when a conversation connects; when the vault lacks a key, the answer is `{ok: false, error}` with an `error` that starts `needs setup:` and names the keys, and nothing is contacted. A new or changed entry that references the vault answers `{ok: false, saveFirst: true, error}`: nothing is filled in and nothing is contacted, so a caller cannot send a vault value to an address of its own. Save the entry, then test it. The response never echoes the entry.
 - `POST …/config/kernel-update` is the non-destructive sibling of `reset`. It moves settings tabs that are absent or still hold an old default up to the current defaults (`advanced`), keeps customized tabs whole (`kept`), and writes the new defaults generation (`kernelVersion`).
 - The `template-placeholder` routes are idempotent. The vault and Skills routes insert `{{VAULT}}` or `{{SKILLS}}` into the prompt template, or turn a legacy hard-coded `# Vault` or `# Skills` section into the placeholder. The Memory route inserts `{{MEMORY}}` and is how an agent created before Memory adopts it.
@@ -566,10 +569,10 @@ The paths below omit the `/api/projects/:projectId` prefix, except the global `/
 
 - `GET …/memory` returns the Memory switch, whether the prompt template carries `{{MEMORY}}`, and one entry per scope: the user scope (`user`, `kind: "user"`) first, then the Workspaces.
 - In the scope routes, `:key` is a workspace key or `user`.
-- `GET …/scopes/:key/files` lists one scope's topic files with their frontmatter and file stats.
-- `DELETE …/scopes/:key/files/:name` deletes a topic file and removes its lines from the `MEMORY.md` index.
-- `GET …/scopes/:key/export` returns every topic file of the scope plus its `MEMORY.md` as one JSON document, downloaded as an attachment.
-- `POST …/scopes/:key/import` takes `{payload, mode?, confirm?}`. `mode` is `skip` (the default, which adds only names the scope lacks), `overwrite` (which replaces same-named files) or `replace` (which also deletes what the document omits). Anything that would overwrite or delete needs `confirm`, otherwise the route returns 409 `memory_import_confirm_required`.
+- `GET …/scopes/:key/files` lists one scope's topic files with their frontmatter and file stats. Each topic carries `files`: the files in its folder, the topic's file name without `.md` (`csv-tools/` for `csv-tools.md`), at any depth, each with its `path` in the scope (`csv-tools/lib/io.py`), `size` and `modifiedAt`. `orphanFiles` lists, the same way, the files in folders with no topic of their name.
+- `…/scopes/:key/files/:path` takes a file's path in the scope, one URL segment per path segment: a topic's name, or `<folder>/<path>` for a file a topic keeps. `GET` returns a topic with its frontmatter and `files`, or a kept file's text, whose `file` then carries the path as its `name`; a kept file over 512 KB is refused with 413 `memory_file_too_large`, and one that is not UTF-8 text with 415 `memory_file_not_text`. `DELETE` deletes a topic file with its folder and removes its lines from the `MEMORY.md` index, or deletes one kept file and the folders it leaves empty. Neither follows a symlink.
+- `GET …/scopes/:key/export` returns the scope folder as a zip attachment: `MEMORY.md`, every topic file and every folder's files at the zip's root, as the files they are. Past 1,000 files, 5 MB per file or 20 MB in all it returns 413 `memory_too_large`.
+- `POST …/scopes/:key/import` takes `{dataBase64, mode?, confirm?}`, the zip in base64, or `{payload, mode?, confirm?}` with a `version: 1` JSON document, which the export answered with before the zip. A memory is a topic file and the folder of its name, and moves as one; a folder with no topic is a memory of its own, named `<folder>/`. `mode` is `skip` (the default, which adds only memories the scope lacks), `overwrite` (which replaces same-named memories, topic and folder) or `replace` (which also deletes the memories the import omits). Anything that would overwrite or delete needs `confirm`, otherwise the route returns 409 `memory_import_confirm_required`, whose `details` carry `overwritten` and `removed` as JSON arrays of memory names and `replacesIndex`. A zip entry that is no memory file, climbs out of the scope, hides behind a dot or is a link is refused with 400; when a non-directory stands at a memory's folder or on the way to one of its files, the route returns 409 `memory_folder_not_a_directory`. Either way nothing is written.
 
 ### Plugins and hooks
 
@@ -653,6 +656,34 @@ The plugins in this section are packages installed on the server: modules the se
 | GET | `/api/languages/:id/grammar` | One language's TextMate grammar, in the shape Shiki's `loadLanguage` takes; `404` for an id nothing contributed |
 
 The listing carries no grammars: one is tens to hundreds of kilobytes, and only the languages a conversation shows are worth fetching. A grammar response is cached for an hour, since it cannot change without a new App, and a new App is a new page load. The aliases and file extensions have to arrive *before* the grammar, because Shiki registers a grammar's own aliases only once it is loaded, and the fence info string is what decides whether to load it. A grammar is data, not code: nothing on this path evaluates anything a plugin ships.
+
+## Theme Packs
+
+A theme pack is a folder with a `pack.json` manifest and a few stylesheets (PRFC-0026). An admin imports one per server as a zip, and every account on that server can pick it. Any pack, built-in or imported, exports to the same zip.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/api/themes` | The imported packs, in install order: `{themes: ThemePackDto[]}`. The built-in packs are not listed, because the Web App ships them |
+| GET | `/api/themes/:id/files/<path>` | One file the pack serves: its `index.css`, a font or a drawing. Anything else is `404` |
+| POST | `/api/themes[?replace=1]` | Admin only. The body is the raw zip, sent as `application/octet-stream`. Answers `201 {theme}` |
+| DELETE | `/api/themes/:id` | Admin only. Answers `204` |
+| GET | `/api/themes/:id/export` | Any pack, built-in or imported, as a zip attachment |
+
+- A `ThemePackDto` is the normalised manifest (`id`, `names`, `version`, `api`, `base`, `modes`, `swatches`, `accent`, `fonts`, `avatar?`) plus `href` and `v`. `v` is a digest of the pack's content and `href` is `/api/themes/<id>/files/index.css?v=<v>`. A replace that changes anything therefore changes both, so cached copies miss.
+- An import is checked before anything is written. The zip holds `pack.json` at its root or inside one top-level folder. It may hold `tokens.css`, `recipes.css`, `accents.css`, `fonts.css`, `sections/<hook>.css`, `fonts/*.woff2`, `art/*.svg|png|webp`, `README.md`, `LICENSE*` and `LICENSES/*.txt`, and nothing else. Its caps are 200 files, a 16 MiB zip, 24 MiB unpacked and 512 KiB of stylesheets. Every stylesheet is parsed against the grammar of PRFC-0026 and stored as the parser re-emits it, never as uploaded. It is then held to the clean baseline's static rules (R1, R2, R5–R11), with no hit allowed. The stored `index.css` holds nothing of the build. It is served with the app stylesheet's whole cascade layer order in front, so loading it before the app's own sheet, as the pre-paint script does after a reload, leaves the layer order unchanged. The `v` a pack is listed and served at mixes that order in, so a Web App build that changes it moves the address.
+- Refusals:
+  - `400` `theme_invalid`: `details` is `{file, reason, line?, column?}`, pointing at the first thing refused.
+  - `400` `theme_id_reserved`: a built-in pack's id.
+  - `409` `theme_exists`: the id is installed, with `details.themeId`. `replace=1` replaces it.
+  - `413` `theme_too_large`.
+  - `422` `theme_api_unsupported`: a pack written for a newer theme API.
+  - `503` `themes_unavailable`: the server's Web App build carries no built-in pack sources to check against.
+  - `403` `admin_required`: a write by a member.
+- A served file is answered with its type, `X-Content-Type-Options: nosniff`, `Cache-Control: private, max-age=31536000, immutable`, `Content-Security-Policy: sandbox; default-src 'none'` and `Cross-Origin-Resource-Policy: same-origin`. Only the files the pack's `installed.json` lists are served.
+- `DELETE` of a built-in pack is `400` `theme_builtin`. An id that is not installed is `404` `theme_not_found`, as is an export of an unknown id.
+- The export of an imported pack is the zip as uploaded. The export of a built-in comes from the served build's own copy of its sources, so it works offline. It is in the shape an import takes: Frost's rules are scoped to `:root[data-theme="modern"]`, and a pack whose faces are the app's shared ones has no `fonts.css`. Frost's export leaves its `recipes.css` behind, because a pack on `"base": "modern"` takes Frost's recipes from the base; its `README.md` says so. To start a pack of your own, export Frost, rename its id in `pack.json` and in its selectors, and import it. Console exports its recipes, whose clean-baseline hits have to be cleared before it imports.
+- Packs live under the data root at `themes/<id>/`, and each upload is kept at `themes/archives/`. They are not synced to machines.
+- Every import, replace and removal sends `themes_changed` to every signed-in user's event stream.
 
 ## Schedules
 
@@ -864,7 +895,7 @@ The paths below omit the `/api/projects/:projectId` prefix.
 - The error table folds the records of one day that share a source, code, kind and message into one row, with its `count`, its latest time `ts` and its first time `firstTs`. `offset`, `limit` and `rows` count those rows; `total` and the dashboard's summary figures count records. `GET /usage` and `GET /usage/errors` take an optional `utcOffsetMinutes`, the reader's offset east of UTC (−840 to 840), which decides the day; without it the day is the server's own.
 - `DELETE /usage/errors` takes the same filter as the reads, `from` / `to` / `fromTs` / `toTs` / `agentId`, but no `kind`, because the panel offers no such control. `from` and `to` are both required here (400 otherwise), because an open bound would clear the whole history rather than a filtered part. The clear reaches exactly what the caller's reads reach: an admin's clear also removes the unattributed rows that only an admin's read shows, and a member's clear never does.
 - `GET /agents/:agentId/traces` also accepts `limit` and `offset` for paging, and `category` (which requires `limit`) to list one category of Sessions. The paged listing uses the same two categories as the Session list and leaves out `subagent` and `company` Sessions, which are in no category; the full drill-down without `limit` lists every Trace.
-- Any member can download a Trace. Import is owner only, like the Agent State snapshot import, and capped at 14MB. The imported file must be valid Trace JSONL whose first record is a `session_meta` with a filename-safe `session_id`. A session id the agent already has is rejected (409 `trace_session_exists`), so an imported file always becomes index 001 of a new Session, stored in the local date directory of its first record's timestamp.
+- Any member can download a Trace. Import is owner only, like overwriting an agent from a package, and capped at 14MB. The imported file must be valid Trace JSONL whose first record is a `session_meta` with a filename-safe `session_id`. A session id the agent already has is rejected (409 `trace_session_exists`), so an imported file always becomes index 001 of a new Session, stored in the local date directory of its first record's timestamp.
 
 ## Session-Level Endpoints
 
@@ -1377,7 +1408,7 @@ Real-time delivery uses Server-Sent Events, not WebSocket, on two kinds of chann
 | --- | --- | --- |
 | Per Session | `GET /api/sessions/:sessionId/stream` | The Session's message stream and run events, including `session_created` for its subagent Sessions and the goal-mode events |
 | Per Session, as AMSP | `GET /api/sessions/:sessionId/amsp` | The Session's records and `ping` only, as the Agent API serves them; see [The Session stream](/amsp#the-session-stream) |
-| Per user | `GET /api/events` | The `hello` handshake and notifications across Sessions: `session_created`, `session_archived`, `session_deleted`, `session_state`, `session_background`, `session_approvals`, `session_title`, `schedule_fired`, `schedule_queued`, `web_updated`, company mode's `org_*` events, and for admins `machines_changed` |
+| Per user | `GET /api/events` | The `hello` handshake and notifications across Sessions: `session_created`, `session_archived`, `session_deleted`, `session_state`, `session_background`, `session_approvals`, `session_title`, `schedule_fired`, `schedule_queued`, `web_updated`, `themes_changed`, company mode's `org_*` events, and for admins `machines_changed` |
 | Per Project's machines | `GET /api/projects/:projectId/machines/events` | Every connected machine's own events, each tagged with the machine it came from, merged from the hub's one subscription per machine (**One event stream per machine within the socket hub**) |
 
 ### Wire Format
@@ -1405,6 +1436,7 @@ export type ServerEvent =
   | { type: "hello" }
   | { type: "heartbeat" }
   | { type: "web_updated"; rev: string }
+  | { type: "themes_changed" }
   | { type: "machines_changed" }
   | { type: "machine_event"; machineId: string; event: ServerEvent }
   | { type: "session_created"; projectId: string; agentId: string; sessionId: string; source: SessionSource }
@@ -1434,6 +1466,7 @@ export type ServerEvent =
 | `hello` | Handshake on the user channel |
 | `heartbeat` | The stream's own beat, every 20 s: on `/api/events` and on the machines' aggregate, so a reader can tell a live stream from a silent one |
 | `web_updated` | A hot update replaced the served web assets; clients reload |
+| `themes_changed` | A theme pack was imported, replaced or removed; clients read `GET /api/themes` again |
 | `session_created` | A Session now exists: created by the Web App, the CLI, a schedule, or an agent spawning a child |
 | `session_archived` | A Session was archived or unarchived |
 | `session_deleted` | A Session was deleted |

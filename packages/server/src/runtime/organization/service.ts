@@ -119,7 +119,8 @@ import { DEFAULT_EMPLOYEE_PLUGINS, OrgRuns, OrgSessions, employeePlugins } from 
 import type { OrgDeps } from "./deps.js";
 import { loadOrg, orgEmployeeNames, projectUserIds, sharedWorkspace } from "./model.js";
 import type { LoadedOrg } from "./model.js";
-import { parseAvatarDataUrl, readAvatar, writeAvatar } from "../../organization/avatars.js";
+import { readAvatar, readAvatarRev, writeAvatar } from "../../organization/avatars.js";
+import { parseAvatarDataUrl } from "../../services/avatar-file.js";
 import { employeeNameProblem, findMentions } from "../../organization/names.js";
 import type { MentionHandle } from "../../organization/names.js";
 import {
@@ -814,7 +815,7 @@ export class OrganizationService {
         ledgerDesk !== undefined && this.deps.sessions.findById(ledgerDesk.sessionId) !== null
           ? ledgerDesk
           : undefined;
-      const avatarRev = (await readAvatar(org.dir, e.agentId))?.rev;
+      const avatarRev = await readAvatarRev(org.dir, e.agentId);
       out.push({
         agentId: e.agentId,
         name: names.get(e.agentId) ?? e.agentId,
@@ -2939,8 +2940,14 @@ export class OrganizationModule {
       agents: {
         exists: async (projectId, agentId) =>
           agentsRepo.exists(projectId, agentId) || agentConfig.exists(projectId, agentId),
+        // Every Agent company mode creates — an organization's CEO, a new hire — is its own.
         create: async (projectId, agentId, name, description, plugins) => {
-          await agentService.createAgent(projectId, agentId, name, description, plugins);
+          await agentService.createAgent(projectId, agentId, {
+            ...(name !== undefined ? { name } : {}),
+            ...(description !== undefined ? { description } : {}),
+            author: "company",
+            plugins,
+          });
         },
         displayName: async (projectId, agentId) =>
           (await agentConfig.readCardMeta(projectId, agentId)).name ?? agentId,

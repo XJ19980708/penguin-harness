@@ -9,6 +9,46 @@ import type { ReleaseNote } from "./release-notes";
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
+    // A local build: upstream 0.2.18 plus the 2026-11-11/11-12 batches. Its version compares
+    // equal to 0.2.18 (the pre-release suffix is ignored) and it sits first, so the dialog shows
+    // it as the newest note while 0.2.18 keeps the running-version pill.
+    version: "0.2.18-local.3",
+    date: "2026-11-12",
+    zh: [
+      "Agent 有了自己的头像：每个主题把它画成一只微笑的球企鹅，用 Agent 自己的色相。",
+      "App Center 变成首页：图标与名称、拖拽排序、文件夹、窗口化、右键菜单和安装状态。",
+      "插件可以直接从索引的 GitHub Release 渠道安装，并校验完整性。",
+      "主题包体系上线：首个 Doodle（卡通）主题基于 Frost，导入的主题包会列在外观页。",
+      "记忆的脚本存进以其命名的文件夹；风险操作会停下来等你确认。",
+    ],
+    en: [
+      "An agent has a picture of its own: every theme draws it as a smiling ball penguin in the agent's hue.",
+      "The App Center is a home screen: icons and names, drag to sort, folders, windows, a context menu and install status.",
+      "Plugins install straight from the index's GitHub Release channels, with integrity verification.",
+      "Theme packs arrive: Doodle, the first pack, is built on Frost, and imported packs list on the Appearance page.",
+      "A memory keeps its scripts in a folder of its name, and risky actions wait for your go-ahead.",
+    ],
+  },
+  {
+    // A local build: upstream 0.2.18 plus the 2026-11-04 through 2026-11-09 batches.
+    version: "0.2.18-local.2",
+    date: "2026-11-09",
+    zh: [
+      "工作台（Workbench）迁入 Agent State，版本以 git commit 记录，并支持 zip 导入导出。",
+      "插件体系改为声明式（读取各自的 ifaces.json），A2UI 语法拆为独立包；桌面菜单与 DevTools 走 host command。",
+      "侧边栏改为插槽组合，路由从 page 插槽取；ChatPage 拆分为工具栏 / 正文 / 会话模块。",
+      "删除公司会连带删除它的 Agents；文档语言跟随界面语言，Workbench 标签页与 Chat 并排。",
+      "站点新增插件、基准、榜单页面。",
+    ],
+    en: [
+      "Workbenches live in Agent State with git-commit versions, and import and export as zips.",
+      "Plugins declare themselves (their built ifaces.json) and the A2UI grammar is its own package; desktop menus and DevTools go through the host command API.",
+      "The sidebar is filled from slots and every route comes from the pages slot; ChatPage splits into toolbar, body and session modules.",
+      "Deleting a company now deletes its agents, the document language follows the interface, and a workbench tab sits beside Chat.",
+      "The site adds Plugins, Benchmarks and Leaderboards pages built from their sources.",
+    ],
+  },
+  {
     // A local build: upstream 0.2.18 plus the 2026-10-30 and 2026-11-02 batches. Its version
     // compares equal to 0.2.18 (the pre-release suffix is ignored) and it sits first, so the
     // dialog shows it as the newest note while 0.2.18 keeps the running-version pill.

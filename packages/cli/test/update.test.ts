@@ -28,7 +28,7 @@ import {
   registerUpdateCommand,
   resolveRelease,
 } from "../src/commands/update.js";
-import { getMessages } from "../src/i18n.js";
+import { getMessages } from "@prismshadow/penguin-server/cli";
 
 // POSIX-only: the fixtures are POSIX install layouts and detectInstall normalizes through
 // path.* (backslashes on Windows) — where in-place `penguin update` is refused anyway
@@ -641,14 +641,13 @@ describe("command registration", () => {
   it("registers `update` with its three options in both languages", () => {
     for (const lang of ["en", "zh"] as const) {
       const program = new Command();
-      registerUpdateCommand(program, getMessages(lang));
+      registerUpdateCommand(program.command("update"), getMessages(lang));
       const cmd = program.commands.find((c) => c.name() === "update");
       expect(cmd).toBeDefined();
       const flags = cmd?.options.map((o) => o.flags) ?? [];
       expect(flags).toContain("--check");
       expect(flags).toContain("--release <tag>");
       expect(flags).toContain("-y, --yes");
-      expect(cmd?.description()).toBeTruthy();
     }
   });
 });

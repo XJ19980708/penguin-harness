@@ -211,6 +211,11 @@ export function planCI({ cwd = process.cwd(), base, full = false } = {}) {
   const tests = selected.filter((p) => p.scripts.test).map((p) => p.name);
   const core = tests.filter((name) => name === `${prefix}core`);
   const server = tests.filter((name) => name === `${prefix}server`);
+  // The server's tests run the checkout's own CLI from source through the shim, and the
+  // CLI's command graph imports src/ifaces.json at load — generated only by the CLI's
+  // build, so a shard running the server's tests builds the CLI alongside the server.
+  const cli = `${prefix}cli`;
+  const serverBuild = build(server.length && byName.has(cli) ? [...server, cli] : server);
   const webCli = tests.filter((name) => ["web", "ui", "cli"].some((p) => name === `${prefix}${p}`));
   const rest = tests.filter((name) => !core.includes(name) && !server.includes(name));
   const linuxRest = rest.filter((name) => !webCli.includes(name));
@@ -229,7 +234,7 @@ export function planCI({ cwd = process.cwd(), base, full = false } = {}) {
   // with coverage on two workers, it was the longest Linux job of a server change (4.5-6 min).
   const linux = [
     shard("core", core),
-    ...halves("server", server),
+    ...halves("server", server, { build: serverBuild }),
     ...(webCli.includes(`${prefix}web`) ? halves("web", webCli) : [shard("web-cli", webCli)]),
     // `gallery`: the component library's browser layout checks run in the job that tests the
     // gallery, beside its unit suite, rather than lengthening browser-smoke.
@@ -264,7 +269,7 @@ export function planCI({ cwd = process.cwd(), base, full = false } = {}) {
   // one to make room for it.
   const macos = [
     shard("core", core),
-    shard("server", server),
+    shard("server", server, { build: serverBuild }),
     shard("rest", nativeRest, {
       smoke: nativeAffected.has(`${prefix}desktop`),
       must_run: "sandbox-seatbelt,sandbox-dsh",
@@ -275,6 +280,7 @@ export function planCI({ cwd = process.cwd(), base, full = false } = {}) {
     shard("core", core),
     ...Array.from({ length: WINDOWS_SERVER_SHARDS }, (_, i) =>
       shard(`server-${i + 1}`, server, {
+        build: serverBuild,
         tests: command(server, `exec vitest run --shard=${i + 1}/${WINDOWS_SERVER_SHARDS}`),
       }),
     ),

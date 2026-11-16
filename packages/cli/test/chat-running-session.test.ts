@@ -38,7 +38,7 @@ import {
   userText,
 } from "@prismshadow/penguin-core";
 import { registerChatCommand } from "../src/commands/chat.js";
-import { getMessages } from "../src/i18n.js";
+import { getMessages } from "@prismshadow/penguin-server/cli";
 import { FakeServer, type FakeSessionState } from "./fake-server.js";
 
 const t = getMessages("en");
@@ -86,7 +86,7 @@ function startChat(argv: string[], tty = false): Chat {
   });
   const program = new Command();
   program.exitOverride();
-  registerChatCommand(program, t);
+  registerChatCommand(program.command("chat"), t);
   const done = program.parseAsync(["node", "penguin", "chat", ...argv]).finally(() => {
     Object.defineProperty(process, "stdin", { value: realStdin, configurable: true });
   });

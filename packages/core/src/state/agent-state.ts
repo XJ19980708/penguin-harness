@@ -23,6 +23,7 @@ import type { IconImage } from "../plugin/icon.js";
 import { iconFileName, isIconFileName } from "../plugin/icon-format.js";
 import { parseSkillFrontmatter } from "../plugin/skill-frontmatter.js";
 import type { SkillMetadata } from "../plugin/skill-frontmatter.js";
+import { renameWithRetry } from "../internal/rename-retry.js";
 import type { MCPServerConfig, ToolConfig, ToolDefinitionConfig } from "../interfaces/index.js";
 import {
   PLUGIN_ROOT_REF,
@@ -574,21 +575,6 @@ export async function replaceSkillDirectory(
   } catch (err) {
     await fs.rm(staging, { recursive: true, force: true }).catch(() => undefined);
     throw err;
-  }
-}
-
-// Windows: antivirus real-time scanning holds handles on freshly written files for a moment,
-// so the swap-in rename fails EPERM/EBUSY and would crash first launch; back off and retry.
-async function renameWithRetry(from: string, to: string): Promise<void> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      await fs.rename(from, to);
-      return;
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if ((code !== "EPERM" && code !== "EBUSY") || attempt >= 5) throw err;
-      await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
-    }
   }
 }
 

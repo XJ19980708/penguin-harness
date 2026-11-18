@@ -17,6 +17,7 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
+import { renameWithRetry } from "../internal/rename-retry.js";
 import {
   readBuiltinBenchmarks,
   writeBuiltinBenchmark,
@@ -132,7 +133,7 @@ async function place(
  */
 async function renameInto(incoming: string, target: string): Promise<void> {
   try {
-    await fs.rename(incoming, target);
+    await renameWithRetry(incoming, target);
   } catch (error) {
     if (!(await occupied(target))) throw error;
     throw Object.assign(new Error(`Already taken: ${target}`, { cause: error }), {
@@ -147,7 +148,7 @@ async function swapIn(incoming: string, target: string): Promise<void> {
   const aside = `${incoming}.replaced`;
   let moved = false;
   try {
-    await fs.rename(target, aside);
+    await renameWithRetry(target, aside);
     moved = true;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;

@@ -9,7 +9,8 @@
  * makes the replacement a single atomic step: a reader sees the old bytes or the new ones.
  */
 import path from "node:path";
-import { chmod, readlink, rename, rm, writeFile } from "node:fs/promises";
+import { chmod, readlink, rm, writeFile } from "node:fs/promises";
+import { renameWithRetry } from "./rename-retry.js";
 
 /**
  * Cap on symlink hops when resolving a write target, matching the kernel's own `ELOOP`
@@ -57,7 +58,7 @@ export async function atomicWriteFile(
       flush: true,
     });
     if (opts.mode !== undefined) await chmod(tmp, opts.mode);
-    await rename(tmp, dest);
+    await renameWithRetry(tmp, dest);
   } catch (err) {
     await rm(tmp, { force: true }).catch(() => undefined);
     throw err;

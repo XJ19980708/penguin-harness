@@ -578,6 +578,7 @@ const CONTENT_TYPES: Record<string, string> = {
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json",
+  ".webmanifest": "application/manifest+json",
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".jpg": "image/jpeg",
@@ -760,7 +761,65 @@ function staticResponse(
  * directory on disk. Serves the caching contract above, so pushes take effect
  * on the next navigation and hashed assets stop re-downloading.
  */
+/**
+ * A workbench's full-page route (`/app/<project>/<agent>/<workbench>[/<tabKey>]`) is its own
+ * installable app: served through the SPA fallback (no such file exists), its index.html's
+ * manifest link stops naming the main app's manifest and names the workbench's own — or, when
+ * the route names a tab (a fourth segment), that tab's own manifest: one app per tab, the
+ * launcher opening THAT tab. Null for every other path.
+ */
+function workbenchAppPage(
+  reqPath: string,
+  machineId?: string,
+): {
+  projectId: string;
+  agentId: string;
+  workbenchId: string;
+  tabKey?: string;
+  machineId?: string;
+} | null {
+  const m = /^\/app\/([^/]+)\/([^/]+)\/([^/]+)(?:\/([^/]+))?/.exec(reqPath);
+  if (m === null) return null;
+  return {
+    projectId: m[1]!,
+    agentId: m[2]!,
+    workbenchId: m[3]!,
+    ...(m[4] === undefined ? {} : { tabKey: m[4] }),
+    // The machine rides the query, which the request path does not carry — the caller
+    // reads it off the request and hands it in.
+    ...(machineId === undefined || machineId === "" ? {} : { machineId }),
+  };
+}
+
+/**
+ * index.html served for a workbench's app page, with its manifest link retargeted. The
+ * source link is the template's literal (`href="/manifest.webmanifest"`); when the built
+ * file ever words it differently the page is passed through untouched rather than
+ * half-rewritten. Other pages keep the main app's manifest.
+ */
+function withWorkbenchManifestLink(content: Buffer, reqPath: string, machineId?: string): Buffer {
+  const page = workbenchAppPage(reqPath, machineId);
+  if (page === null) return content;
+  const segments = [page.projectId, page.agentId, page.workbenchId].map(encodeURIComponent);
+  // `tabs/` is a literal, not a segment: only the tab key is encoded. A remote machine's
+  // workbench names the machine in the query — the auth-less gate hops to it.
+  const href =
+    `/api/projects/${segments[0]}/agents/${segments[1]}/workbenches/${segments[2]}` +
+    (page.tabKey === undefined ? "" : `/tabs/${encodeURIComponent(page.tabKey)}`) +
+    "/manifest.webmanifest" +
+    (page.machineId === undefined ? "" : `?machine=${encodeURIComponent(page.machineId)}`);
+  const html = content.toString("utf8");
+  const rewritten = html.replace('href="/manifest.webmanifest"', `href="${href}"`);
+  return rewritten === html ? content : Buffer.from(rewritten, "utf8");
+}
+
 function registerStaticRoutes(app: Hono<AppEnv>, resolveSource: () => Promise<WebSource>): void {
+  // The machine query rides the app page's URL (`/app/...?machine=<id>`) and must reach the
+  // manifest-link rewrite; the request path alone does not carry it.
+  const machineOf = (c: { req: { query(name: string): string | undefined } }) => {
+    const machine = c.req.query("machine");
+    return machine === undefined || machine === "" ? undefined : machine;
+  };
   app.get("*", async (c) => {
     const reqPath = decodeURIComponent(c.req.path);
     if (reqPath.startsWith("/api/")) {
@@ -778,7 +837,11 @@ function registerStaticRoutes(app: Hono<AppEnv>, resolveSource: () => Promise<We
       if (content === undefined) {
         return c.json(errorBody("not_found", "Resource does not exist."), 404);
       }
-      return staticResponse(c, content, servedPath, etagOfBuffer(content));
+      const served =
+        servedPath === "index.html"
+          ? withWorkbenchManifestLink(content, reqPath, machineOf(c))
+          : content;
+      return staticResponse(c, served, servedPath, etagOfBuffer(served));
     }
 
     const webDist = source.dir;
@@ -817,10 +880,21 @@ function registerStaticRoutes(app: Hono<AppEnv>, resolveSource: () => Promise<We
     } catch {
       return c.json(errorBody("not_found", "Resource does not exist."), 404);
     }
-    // A weak size+mtime validator, the classic disk-file shape — hashing every
-    // response would cost more than the 304s save.
-    const etag = `W/"${content.byteLength}-${Math.round(mtimeMs)}"`;
-    return staticResponse(c, content, path.relative(base, file).split(path.sep).join("/"), etag);
+    const served =
+      file === path.join(base, "index.html")
+        ? withWorkbenchManifestLink(content, reqPath, machineOf(c))
+        : content;
+    // A weak size+mtime validator, the classic disk-file shape — hashing every response
+    // would cost more than the 304s save. A rewritten page is where that shape lies: the
+    // rewrite retargets the manifest link per workbench and per tab, so equal-length
+    // rewrites of one file are different representations with the same size and mtime,
+    // and a validator held for one would wrongly 304 the other. Those carry a hash of
+    // the rewritten bytes instead (the same identity the in-memory branch hashes).
+    const etag =
+      served === content
+        ? `W/"${served.byteLength}-${Math.round(mtimeMs)}"`
+        : `W/"${createHash("sha256").update(served).digest("base64url").slice(0, 16)}"`;
+    return staticResponse(c, served, path.relative(base, file).split(path.sep).join("/"), etag);
   });
 }
 

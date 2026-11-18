@@ -157,9 +157,9 @@ To make a folder without dragging, select **New folder** at the top of the page.
 
 Your arrangement is kept with your account, for each Project, so it follows you to other browsers. A workbench added later goes at the end. A folder stays as long as it holds an app, even just one, and goes away once it is empty.
 
-Every tile has a menu: right-click it, focus it and press Shift+F10 or the menu key, or press and hold it on a touch screen. Besides opening the workbench, it moves the tile forward or backward, moves it into a new folder, into an existing one or into a new one with another app (**Move to…**), takes it out of its folder, removes it from the App Center, and opens the agent's settings on its Plugins tab. A folder's menu opens, renames and ungroups it. The menu of the grid's empty space has **New folder…** and **Restore default order**, which clears your arrangement after asking.
+Every tile has a menu: right-click it, focus it and press Shift+F10 or the menu key, or press and hold it on a touch screen. Besides opening the workbench, it moves the tile forward or backward, moves it into a new folder, into an existing one or into a new one with another app (**Move to…**), takes it out of its folder, removes it from the App Center, and opens the agent's settings on the Workbenches sub-page of its Plugins tab. A folder's menu opens, renames and ungroups it. The menu of the grid's empty space has **New folder…** and **Restore default order**, which clears your arrangement after asking.
 
-A workbench appears here when its own `package.json` asks for it, which an agent does when it builds one for you. To add or take one off, use the **App Center** switch on its row in the agent's [Plugins tab](/agents#workbenches). A workbench that is turned off there has no tile. With nothing to show yet, the page explains what a workbench is and offers **Create with AI**, which asks an agent to build one and put it here.
+A workbench appears here when its own `package.json` asks for it, which an agent does when it builds one for you. To add or take one off, use the **Show in the App Center** switch on its row on the agent's [Workbenches](/agents#workbenches) sub-page, or the same item in the row's **More** menu. A workbench that is turned off there has no tile. With nothing to show yet, the page explains what a workbench is and offers **Create with AI**, which asks an agent to build one and put it here.
 
 The App Center lists the agents of the server you are signed in to. Workbenches of agents on connected machines open from those agents' settings instead.
 
@@ -191,7 +191,7 @@ The id is 2–64 characters long. It starts with a lowercase letter and uses onl
 | **General** | The display name, the **Project ID**, and **Delete Project**, which removes the Project's directory recursively and cannot be undone |
 | **Members** | Who belongs to the Project, and with what role. The owner adds an existing user by username (**Add member**) and removes members (**Remove**). Not in the desktop app. |
 | **Defaults** | **New chat defaults**: the agent, working directory, approval mode, thinking level and default model that every new chat starts with |
-| **Security policy** | Command policy rules. A command matching an enabled rule is refused, whatever the approval mode. See [Command policy](/configuration#command-policy) |
+| **Security policy** | Command policy rules. A command matching an enabled rule waits for a person's go-ahead or is refused, as the rule says, whatever the approval mode. See [Command policy](/configuration#command-policy) |
 
 ### Roles
 

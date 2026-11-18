@@ -821,6 +821,11 @@ export const en: Strings = {
     /** A switch one of whose positions this machine cannot honour, under the switch. */
     pluginPositionUnavailable: (position: string, reason: string) =>
       `${position} is not supported here: ${reason}`,
+    /** A list field's editor: the row buttons and the add row. */
+    pluginListMoveUp: "Move up",
+    pluginListMoveDown: "Move down",
+    pluginListRemove: "Remove",
+    pluginListAdd: "Add",
     pluginPositionOn: "On",
     pluginPositionOff: "Off",
     pluginsInfo:
@@ -1078,6 +1083,7 @@ export const en: Strings = {
     checkingUpdates: "Checking for updates…",
     openDevTools: "Open DevTools",
     projectOnGitHub: "Project on GitHub",
+    newWindow: "New Window",
   },
   rescue: {
     title: "Something broke the page",
@@ -1104,7 +1110,7 @@ export const en: Strings = {
     title: "Workbenches",
     count: (n: number) => `${n} ${n === 1 ? "workbench" : "workbenches"}`,
     open: "Open workbench",
-    /** The Agent-wide switch on the Plugins tab, and what it does. */
+    /** The Agent-wide switch on the Plugins tab's Workbenches sub-page, and what it does. */
     enableAll: "Enable workbenches",
     enableAllHint:
       "With it off, none of this agent's workbenches run: they leave the chat page and the App Center, and their pages stop opening. Each workbench keeps its own switch, its data and its versions, and turning this back on restores them as they were.",
@@ -1116,7 +1122,7 @@ export const en: Strings = {
     offByAll: "Enable workbenches is off. Turn it on first.",
     /** The full-page route of a switched-off workbench. */
     offPage:
-      "This workbench is turned off. You can turn it on under Plugins in the agent's settings.",
+      "This workbench is turned off. You can turn it on under Plugins › Workbenches in the agent's settings.",
     noMatches: "No matching agents.",
     searchAgents: "Search agents",
 
@@ -1146,6 +1152,8 @@ export const en: Strings = {
         : `Show this page as the whole app; ${palette} opens the command palette to leave`,
     exitFullPage: "Exit full page (back to workbench)",
     exitFullPageButton: "Exit full screen",
+    exitBallTuck: "Tuck to the edge",
+    exitBallShow: "Show the exit button",
     retryHistory: "Retry",
     exitHint: (palette: string | null): string =>
       palette === null
@@ -1204,12 +1212,11 @@ export const en: Strings = {
     importOverwriteAction: "Overwrite",
     /** The row's More menu: downloads the workbench's source as a zip. */
     exportWorkbench: "Export",
-    /** The row's switch (its accessible name, with the title): whether the workbench has a shortcut in the App Center. */
+    /** Whether the workbench has a shortcut in the App Center: the words beside the row's switch (which flip it too), its accessible name with the title, and the More menu's checkable row. */
     showInAppCenter: "Show in the App Center",
+    /** The switch's words' tooltip: what showing in the App Center means, and what the switch writes. */
     showInAppCenterHint:
-      "Show a shortcut to this workbench in the App Center. This rewrites its package.json and is recorded as a version.",
-    /** The words beside the row's switch, which flip it too. */
-    appCenterLabel: "App Center",
+      "When on, this workbench appears as an app on the App Center page: every member of the Project sees its icon there and opens it with one click, without starting a chat first. Turning it off only takes the shortcut off the App Center; the workbench, its data and its versions are untouched. Flipping the switch rewrites penguin.appCenter.show in the workbench's package.json and is recorded as a version.",
     /** The row's text button: opens the workbench beside a new chat. */
     openAction: "Open",
     /** The row's "⋯" button, which holds its other actions. */
@@ -1224,7 +1231,7 @@ export const en: Strings = {
     loading: "Loading…",
     emptyTitle: "The App Center is empty",
     empty:
-      "A workbench is a page an agent hosts beside the chat, and it can also open full page. Once an agent creates a workbench and its row in the agent's settings has the “App Center” switch on, it appears here.",
+      "A workbench is a page an agent hosts beside the chat, and it can also open full page. Once an agent creates a workbench and its row in the agent's settings has the “Show in the App Center” switch on, it appears here.",
     /** A tile whose current files failed to load: it still opens, and its menu shows the error. */
     broken: "Failed to load",
     /** A tile whose app is still being built: it opens once the build is done. */
@@ -1568,6 +1575,32 @@ export const en: Strings = {
     documentPlaceholder: "Find in document…",
   },
 
+  datePicker: {
+    locale: "en-US",
+    pickDate: "Pick a date",
+    pickTime: "Pick a time",
+    pickDateTime: "Pick a date and time",
+    pickRange: "Pick a date range",
+    fieldName: (label: string, shown: string): string => `${label}: ${shown}`,
+    today: "Today",
+    clear: "Clear",
+    previousMonth: "Previous month",
+    nextMonth: "Next month",
+    month: "Month",
+    year: "Year",
+    hour: "Hour",
+    minute: "Minute",
+    dayPeriod: "AM/PM",
+    time: "Time",
+    pickEnd: "Pick the end date",
+    startDate: "Start date",
+    endDate: "End date",
+    cancel: "Cancel",
+    confirm: "OK",
+    rangeSeparator: " – ",
+    done: "Done",
+  },
+
   common: {
     save: "Save",
     cancel: "Cancel",
@@ -1897,7 +1930,7 @@ export const en: Strings = {
     createPluginsPlaceholder: "No plugins selected",
     createPluginsPicked: (n: number): string => `${n} plugin${n === 1 ? "" : "s"} selected`,
     createPluginsHint:
-      "Installed into the agent at creation (skills, hook packages and MCP servers); add or remove them later in its Skills, Hooks and Tools tabs.",
+      "Installed on the agent when it is created (skills, hook packages, MCP servers and workbenches); add or remove them later under Plugins in its settings.",
     createPluginsEmpty: "The plugin library has nothing to install.",
     createLocation: "Location",
     createLocationHere: "This server",
@@ -2140,7 +2173,7 @@ export const en: Strings = {
     mcpFromPlugin: (plugin: string): string =>
       `From plugin ${plugin}: reinstalling the plugin replaces this entry.`,
     mcpRemoveFromPlugin: (plugin: string): string =>
-      `It was installed by plugin ${plugin}; Manage installs on the Plugins page can put it back.`,
+      `The ${plugin} plugin installed it; reinstall it under Plugins in this agent's settings.`,
     defaultValue: "(default)",
     onMachineHint: (machine: string) =>
       `This agent lives on ${machine}: its settings, chats and deletion all happen on that machine, apart from this server's agents of the same id.`,
@@ -2192,8 +2225,6 @@ export const en: Strings = {
     exportTracesLast: "Latest N",
     exportTracesRange: "Date range",
     exportTracesCount: "Number of conversations",
-    exportTracesFrom: "From",
-    exportTracesTo: "To",
     exportVaultNote:
       "The vault never goes into the zip; a value written into the config itself travels as it is.",
     exportAction: "Export",
@@ -3260,6 +3291,12 @@ export const en: Strings = {
     /** The tag of a plugin an admin installed on this server (not shipped with the build). */
     installedOnServer: "installed on server",
     installedOnServerHint: "Installed on this server by an admin; it does not ship with the build.",
+    /** The tag of a plugin linked in from a local directory (penguin plugin link). */
+    linkedTag: "link",
+    linkedHint: (dir: string) =>
+      `Linked from a local directory: ${dir}. Edits apply on the next load.`,
+    /** The detail line naming the directory a link points at. */
+    linkedDirectory: "linked directory",
     /** The detail dialog's export (any member) and delete (admin, a package installed on the server). */
     exportPlugin: "Export",
     exportPluginHint:
@@ -3392,37 +3429,46 @@ export const en: Strings = {
 
   /** The Agent settings "Plugins" tab (features/agents/plugins-tab.tsx): the agent's plugins and the parts each brought, the agent's own parts last. */
   agentPlugins: {
-    tabDesc:
-      "The plugins installed on this agent, and the skills, hooks, MCP servers and workbenches each one brought. Uninstalling a plugin removes all of its parts at once. Parts you made or imported yourself are listed last.",
-    /** Appended to the description for a member. */
-    readOnlyHint:
-      "Only the Project owner can use the switches, edit the skills prompt or uninstall a plugin.",
-    importAction: "Import",
-    importMenu: "What to import",
-    importSkill: "Skill",
-    importHook: "Hook package",
-    importWorkbench: "Workbench",
-    importChatOrZip: "Upload a zip, or have the agent import it in a chat",
-    browseLibrary: "Browse plugin library",
-    installedTitle: "Installed plugins",
-    empty: "No plugins on this agent yet. Select Browse plugin library to add one.",
-    ownTitle: "Not from a plugin",
-    /** What a plugin brought to this agent, beside its name: "3 skills, hooks, 1 workbench". */
-    partSummary: (skills: number, hooks: boolean, mcp: number, workbenches: number): string =>
-      [
-        skills === 0 ? "" : skills === 1 ? "1 skill" : `${skills} skills`,
-        hooks ? "hooks" : "",
-        mcp === 0 ? "" : mcp === 1 ? "1 MCP server" : `${mcp} MCP servers`,
-        workbenches === 0 ? "" : workbenches === 1 ? "1 workbench" : `${workbenches} workbenches`,
-      ]
-        .filter((part) => part !== "")
-        .join(", "),
+    /** The Plugins tab's sub-page switch: its accessible name, and each sub-page's label. */
+    subNav: "Plugin sub-pages",
+    subPages: {
+      plugins: "Plugins",
+      skills: "Skills",
+      hooks: "Hooks",
+      workbenches: "Workbenches",
+    },
+    /** Each sub-page's fold: what it holds and what its actions do. */
+    desc: {
+      plugins:
+        "The plugins on this agent, and the ones in the library it could still take. Installing writes a plugin's skills, hook package, MCP servers and workbenches into the agent; uninstalling removes them all at once.",
+      skills:
+        "Every skill on this agent, whether a plugin installed it or you made or imported it. Their metadata goes into the system prompt, and the model reads the body when it needs it. Uninstalling deletes the skill's directory.",
+      hooks:
+        "Every hook package on this agent: scripts the harness runs at the loop's hook points, such as after every Task. Uninstalling deletes the package's directory.",
+      workbenches:
+        'Every workbench on this agent. Open one, reload it, look through its versions, export or remove it, or turn it off and keep its data. "Show in the App Center" puts a workbench on the App Center page as an app.',
+    },
+    /** The fold's second paragraph for a member: what only the owner can do on that sub-page. */
+    readOnly: {
+      plugins: "Only the Project owner can uninstall a plugin.",
+      skills: "Only the Project owner can change Enable skills and the skills prompt.",
+      hooks: "Only the Project owner can change Enable hooks.",
+      workbenches:
+        "Only the Project owner can change Enable workbenches and each workbench's switch.",
+    },
+    openMarket: "Open the Plugins page",
+    /** The Plugins sub-page's two sections. */
+    installedSection: "Installed",
+    availableSection: "Available",
+    installedEmpty: "No plugins on this agent yet.",
+    libraryEmpty: "The plugin library has nothing an agent can take yet.",
     /** A plugin's status on this agent, and what it means on hover. */
     status: {
       installed: "Installed",
       update: "Update available",
       incomplete: "Incomplete",
       "not-in-library": "Not in library",
+      available: "Available",
     },
     statusHint: {
       installed: "Every part of this plugin is here.",
@@ -3430,6 +3476,7 @@ export const en: Strings = {
       incomplete: "Some parts of this plugin are missing. Select Update to put them back.",
       "not-in-library":
         "An admin removed this plugin from the plugin library, so it cannot be updated.",
+      available: "This agent does not have this plugin yet.",
     },
     /** The parts the uninstall confirmation lists, one per line. */
     partSkill: (name: string) => `Skill: ${name}`,
@@ -3445,13 +3492,37 @@ export const en: Strings = {
     uninstallPartly: (plugin: string, failed: string) =>
       `Uninstalled ${plugin}, but these parts could not be deleted: ${failed}`,
     updatedToast: (plugin: string, agent: string) => `Updated ${plugin} on ${agent}`,
-    /** An MCP server row: what keeps it from connecting, and where it is edited. */
-    mcpNeedsSetup: "Needs setup",
-    mcpNeedsSignIn: "Needs sign-in",
-    mcpEdit: "Edit in Tools",
+    /** A plugin's detail: what of it is on this agent, by kind, and where each kind is managed. */
+    onAgentTitle: "On this agent",
+    partKinds: {
+      skills: "Skills",
+      hooks: "Hook package",
+      mcpServers: "MCP servers",
+      workbenches: "Workbenches",
+    },
+    managePart: {
+      skills: "Manage in Skills",
+      hooks: "Manage in Hooks",
+      workbenches: "Manage in Workbenches",
+      mcpServers: "Edit in Tools",
+    },
+    /** A part the library ships and the agent lacks. */
+    missingPart: "Missing",
+    missingPartHint:
+      "The library ships this part and the agent does not have it. Select Update to put it back.",
+    /** The removal of a part a plugin installed: where it can be put back. */
+    partFromPluginNote: (plugin: string) =>
+      `The ${plugin} plugin installed it; Update on the Plugins sub-page puts it back.`,
+    /** The puzzle mark after a part's name: its accessible name and tooltip, saying what a press does. */
+    partSource: (plugin: string) =>
+      `Installed by plugin ${plugin}. Click to locate it on the Plugins sub-page.`,
+    /** Each kind sub-page's list with no row. */
+    skillsEmpty: "No skills on this agent yet.",
+    hooksEmpty: "No hook packages on this agent yet.",
+    workbenchesEmpty: "No workbenches on this agent yet.",
   },
 
-  /** An agent's hook packages on its Plugins tab (features/agents/agent-hooks.tsx): the rows, the enable switch, the import modal (chat import / zip upload) and the export. The hook-point chips carry the bare point name (`stop`, `user_prompt`) and need no string. */
+  /** An agent's hook packages on its Plugins tab's Hooks sub-page (features/agents/agent-hooks.tsx): the rows, the enable switch, the import modal (chat import / zip upload) and the export. The hook-point chips carry the bare point name (`stop`, `user_prompt`) and need no string. */
   hooks: {
     /** The agents page's hook-count stat (hover title / accessible name). */
     hookCount: (n: number): string => (n === 1 ? "1 hook package" : `${n} hook packages`),
@@ -3544,7 +3615,7 @@ export const en: Strings = {
     uninstallConfirmTitle: (name: string): string => `Uninstall ${name}`,
     uninstallConfirmBody: (skill: string, agent: string): string =>
       `Uninstall ${skill} from ${agent}? Its installed files (local edits included) will be deleted.`,
-    /** An agent's Skills on its Plugins tab (rows + import modal). */
+    /** An agent's Skills on its Plugins tab's Skills sub-page (rows + import modal). */
     exportSkill: "Export",
     importSkill: "Import skill",
     importChatTitle: "Recommended: install by chatting with the agent",
@@ -3715,8 +3786,6 @@ export const en: Strings = {
       newFolderPlaceholder: "Type a name, then press Enter",
       /** Accessible name of the × that closes the new-folder row. */
       newFolderCancel: "Cancel new folder",
-      /** The toolbar's New folder while the folder on screen could not be read. */
-      newFolderDenied: "This folder can't be read, so nothing can be made in it here",
       /** Under the new-folder field: a character this machine does not allow in a name. */
       newFolderInvalid: (chars: string): string => `A name can't contain ${chars}`,
       newFolderHidden:
@@ -3777,16 +3846,22 @@ export const en: Strings = {
     sortManual: "Manual order",
     sortRecent: "Most recent",
     newWorkspaceEntity: "New workspace",
-    /** A Workspace group's overflow (… right of the header "+"): browse its files; a registry-backed group adds alias rename + sidebar-only removal. */
+    /** A Workspace group's overflow (… right of the header "+"): every single-directory group can browse its files, be renamed, and be deleted (its active conversations archived). */
     workspaceMenu: "Workspace options",
     renameWorkspace: "Rename workspace",
     renameWorkspaceLabel: "Name",
     renameWorkspaceHint: "Leave empty to use the folder name",
-    deleteWorkspace: "Remove workspace",
+    deleteWorkspace: "Delete workspace",
     /** A Workspace group's "more" menu: the dock's Files panel on that directory. */
     browseWorkspaceFiles: "Browse files",
-    deleteWorkspaceConfirm: (name: string) =>
-      `Remove "${name}"? This only removes the workspace group from the sidebar — the directory on disk and existing chats are untouched, and it can be re-added anytime.`,
+    deleteWorkspaceConfirm: (name: string, count: number) =>
+      count > 0
+        ? `Delete workspace "${name}"? Its ${count === 1 ? "1 chat" : `${count} chats`} will be archived; files on disk are not touched. Unarchive any of them under Archived chats and the workspace comes back.`
+        : `Delete workspace "${name}"? It leaves the sidebar; files on disk are not touched.`,
+    deleteWorkspaceArchived: (count: number) =>
+      `Archived ${count === 1 ? "1 chat" : `${count} chats`}. Unarchive them under Archived chats.`,
+    deleteWorkspaceMachineOutdated: (machine: string) =>
+      `PenguinHarness on ${machine} is too old to delete a workspace. Update it on the Machines page first.`,
     tempWorkspaces: "Temporary workspaces",
     onMachine: (name: string, machine: string) => `${name} [SSH: ${machine}]`,
     machineTag: (machine: string) => `[SSH: ${machine}]`,
@@ -4242,7 +4317,9 @@ Scenarios:
                             ? "the input could not be built into a request"
                             : kind === "failed"
                               ? "the provider returned an error"
-                              : null,
+                              : kind === "denied"
+                                ? "the provider will not serve this account or model (balance, permission, or no such model)"
+                                : null,
       unknownCause: "cause unknown",
       retryNow: "Retry now",
       stop: "Stop retrying",
@@ -4486,6 +4563,8 @@ Scenarios:
       `This model's context window ${n} is smaller than this agent's compaction threshold ${m}, so compaction actually fires at the edge of the window. Drag the dashed mark in the context panel, or set the threshold below the window in the agent settings — it applies immediately.`,
     contextWindowUnderThresholdAction: "Open agent settings",
     contextWindowUnderThresholdDismiss: "Dismiss",
+    contextRefusedHandoff:
+      "The provider refused the last request: too little room was left for compaction, so this conversation continued from a Trace hand-off note. Correct this model's context window in the model settings, or lower this agent's compaction threshold (drag the dashed mark in the context panel).",
     slashHint: "Type / for commands",
     switchAgent: "Hand off to another agent — opens a new session on send",
     switchAgentTitle: "Choose agent",
@@ -4563,6 +4642,7 @@ Scenarios:
     compactionTitle: (mode: string): string => (mode === "discard" ? "Clear" : "Compaction"),
     compactionRunning: (mode: string): string => (mode === "discard" ? "Clearing" : "Compacting"),
     compactionDone: (mode: string): string => (mode === "discard" ? "Cleared" : "Compacted"),
+    compactionWork: "Work",
     compactionResult: "Result",
     modelChanged: (from: string, to: string): string => `Model switched · ${from} → ${to}`,
     modelChangedByTrace: (from: string, to: string): string =>
@@ -4571,16 +4651,24 @@ Scenarios:
       tracePath
         ? `No summary: the previous model was unavailable or its compaction failed, so the new one reads the earlier Trace file when it needs to: ${tracePath}`
         : "No summary: the previous model was unavailable or its compaction failed, so the new one reads the earlier Trace file when it needs to",
+    compactionDegradedHint: (errorMessage?: string): string =>
+      errorMessage !== undefined
+        ? `No full summary could be written; the next context opens with a Trace hand-off note: ${errorMessage}`
+        : "No full summary could be written; the next context opens with a Trace hand-off note.",
+    compactionRoomHint: (providerMessage?: string): string =>
+      `Too little room was left for compaction, so the next context opens with a Trace hand-off note. Correct this model's context window, or lower the compaction threshold.${
+        providerMessage !== undefined ? ` The provider said: ${providerMessage}` : ""
+      }`,
     compactionFailed: (status: string, errorMessage?: string): string => {
       if (status === "aborted") return "aborted, keeping current context";
       const detail = errorMessage !== undefined ? ` (${errorMessage})` : "";
-      // retryable = abandoned this time, the standing trigger retries it; fatal = a config
-      // or credential change has to come first. Legacy Traces spell both "failed".
+      // fatal = the next context could not be opened. Old Traces' abandoned compactions:
+      // retryable = given up this time, retried at the next trigger; legacy "failed" = either.
+      if (status === "fatal") {
+        return `failed${detail}, the next context could not be opened; keeping current context`;
+      }
       if (status === "retryable") {
         return `failed${detail}, keeping current context; retries at the next trigger`;
-      }
-      if (status === "fatal") {
-        return `failed${detail}, keeping current context; fix the model configuration to retry`;
       }
       return `failed${detail}, keeping current context`;
     },
@@ -5310,8 +5398,7 @@ Scenarios:
     total: "Total",
     tokens: "Tokens",
     requests: "Requests",
-    from: "From",
-    to: "To",
+    rangeDates: "Start and end dates",
     colCacheRead: "cache_read",
     colCacheWrite: "cache_write",
     colOutput: "output",
@@ -6730,7 +6817,7 @@ Scenarios:
       machine_outdated: "The machine runs an older version; update it on the Machines page.",
       plugin_not_installed: "Nothing of this plugin is left on this agent.",
       workbench_disabled:
-        "This workbench is turned off. You can turn it on under Plugins in the agent's settings.",
+        "This workbench is turned off. You can turn it on under Plugins › Workbenches in the agent's settings.",
       machine_answered: "The machine's answer could not be used; try again.",
       trace_changed: "The conversation's Trace kept changing while it was read; try again.",
       internal: "The server hit an internal error. Please try again shortly.",

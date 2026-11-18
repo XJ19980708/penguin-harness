@@ -16,7 +16,8 @@ export const en: GalleryStrings = {
       leaderboards: "Leaderboards",
       amsp: "AMSP",
       docs: "Docs",
-      gallery: "Gallery",
+      gallery: "Theme Packs",
+      more: "More",
       github: "GitHub",
       openMenu: "Open menu",
       closeMenu: "Close menu",
@@ -186,6 +187,12 @@ export const en: GalleryStrings = {
         "The settings dialog on its Appearance page: theme, mode, accent, the five text sizes and the font pairing — where theme switching lives.",
       how: "The account menu at the bottom of the sidebar › Settings › Appearance.",
     },
+    "desktop-window": {
+      title: "Desktop window",
+      description:
+        "The desktop app's main window: the title band in the sidebar's colour, the sidebar toggle and back and forward at its start, the window buttons at its end; the main column sits flush against the window's edges, ruled off from the band and the sidebar alike, its scrollbar running to the window's corner.",
+      how: "The desktop app's main window on Windows or Linux; a browser has no title band.",
+    },
     login: {
       title: "Login",
       description:
@@ -194,7 +201,7 @@ export const en: GalleryStrings = {
     },
   },
   home: {
-    eyebrow: "Surface gallery",
+    eyebrow: "Theme Packs",
     title: "Penguin UI",
     lead: "The real Web App, running in three themes, two modes, five text sizes, the font pairings and two languages — on an in-browser demo API, fully clickable.",
     app: "The app",
@@ -413,7 +420,7 @@ export const en: GalleryStrings = {
       "ui-glyph":
         "an icon each theme draws its own way: line (Primer), duotone line (Frost) or pixel art (Console)",
       "ui-avatar":
-        "an agent's default avatar each theme draws its own way: one smiling ball penguin, on a rounded square (Primer), a circle (Frost, Doodle) or in pixel art (Console)",
+        "an agent's default avatar each theme draws its own way: one small egg-shaped penguin drawn in a thin brown line, on a rounded square (Primer), a circle (Frost, Doodle) or in pixel art (Console)",
     },
     hookSamples: {
       menu: ["Pin", "Rename", "Delete"],
@@ -472,7 +479,7 @@ export const en: GalleryStrings = {
       buttons: {
         title: "Buttons",
         description:
-          "Five variants, five sizes and the icon button; disabled and loading; links and keyboard hints.",
+          "Five variants, five sizes and the icon button; disabled and loading; links, inline glyph actions and keyboard hints; the floating ball that drags to an edge and tucks away.",
       },
       inputs: {
         title: "Inputs and forms",
@@ -504,11 +511,15 @@ export const en: GalleryStrings = {
         description:
           "Hints on hover and focus: the data-tooltip attribute and the Tooltip component.",
       },
-      tabs: { title: "Tabs", description: "The underline tab switcher, with an update badge." },
+      tabs: {
+        title: "Tabs",
+        description:
+          "The underline tab switcher, with an update badge; and the sub-page switch under a tab.",
+      },
       badges: {
         title: "Badges and status",
         description:
-          "Badges and counts, state dots, run-state icons, session activity marks, the update dot, and the stat tile and chip.",
+          "Badges and counts, state dots, run-state icons, status marks, session activity marks, the update dot, and the stat tile and chip.",
       },
       empty: {
         title: "Empty states",
@@ -536,7 +547,7 @@ export const en: GalleryStrings = {
       site: {
         title: "Public site",
         description:
-          "What the landing page and the docs share: the footer, the code card and copy button, pills, an article's contents, the docs sidebar, search, the external-link confirmation and article prose.",
+          "What the landing page and the docs share: the navigation bar, the footer, the code card and copy button, pills, the data pages' controls, an article's contents, the docs sidebar, search, the external-link confirmation and article prose.",
       },
       files: {
         title: "Files",
@@ -555,7 +566,8 @@ export const en: GalleryStrings = {
       },
       data: {
         title: "Data",
-        description: "Tables, list rows, label/value pairs and the log view.",
+        description:
+          "Tables, entity cards and fact rows, list rows with their loading and empty states, label/value pairs and the log view.",
       },
       machines: {
         title: "Machines",
@@ -623,8 +635,24 @@ export const en: GalleryStrings = {
       inlineLink: "release notes",
       inlineAfter: " for what changed.",
       external: "All releases",
+      glyphActions: "Inline glyph actions",
+      glyphActionsHint:
+        "The glyph alone, with no box: its ink deepens on hover. The label is the accessible name and the tooltip; with an address it is a link that opens in a new tab, otherwise a button.",
+      glyphAuthor: "Prism Shadow",
+      glyphHomepage: "Homepage",
+      glyphRepository: "Repository",
+      glyphSkill: "data-analysis",
+      glyphFromPlugin: "Installed by the Data analysis plugin",
       keys: "Keyboard hints",
       shortcuts: [["Ctrl", "K"], ["Ctrl", "`"], ["Esc"]],
+      ball: "Floating ball",
+      ballHint:
+        "Drag it to the left or right edge and let go to dock it there; push it past the edge or press × to tuck it away, and the handle on the edge brings it back. The caller stores where it rests.",
+      ballLabel: "Exit full screen",
+      ballTuck: "Tuck to the edge",
+      ballShow: "Show the exit button",
+      ballReadout: (side: "left" | "right", percent: number, tucked: boolean, presses: number) =>
+        `${side} edge, ${percent}% down${tucked ? ", tucked" : ""} · pressed ${presses === 1 ? "once" : `${presses} times`}`,
     },
     inputs: {
       basics: "Inputs",
@@ -686,6 +714,18 @@ export const en: GalleryStrings = {
       date: "Start date",
       time: "Daily reminder at",
       dateTimeLocal: "Next run",
+      dateRange: "Date range",
+      rangeLabel: "Reporting period",
+      dateStates: "Date and time states",
+      dateRequired: "Due date",
+      dateBounded: "A day this month",
+      dateBoundedHint: "Only this month's days can be picked.",
+      dateError: "Release date",
+      dateErrorText: "The release date cannot be before today.",
+      dateDisabled: "Created on",
+      timeStep: "Meeting starts",
+      timeStepHint: "In steps of 15 minutes.",
+      time12: "12-hour clock",
     },
     pickers: {
       select: "Select",
@@ -858,6 +898,7 @@ export const en: GalleryStrings = {
       pagedGroups: { app: "App", you: "Account" },
       pages: { general: "General", appearance: "Appearance", account: "Profile" },
       pageBody: "The current page's settings go here.",
+      pageRow: (n: number) => `Setting ${n}`,
       appearanceInfo: "Theme, accent and density apply to this browser only.",
       drawer: "Drawer",
       openDrawer: "Open a drawer",
@@ -899,6 +940,17 @@ export const en: GalleryStrings = {
       items: ["Overview", "Trace", "Files", "Settings"],
       badgeText: "3 skills can be updated",
       body: (tab) => `The “${tab}” tab's content.`,
+      subPages: "Sub-page switch",
+      subPagesHint:
+        "The second tier under a tab: a segmented switch between sub-pages, the current sub-page's controls at the row's end. They stay put while loading, empty or populated, and wrap under the switch on a narrow screen.",
+      subPagesLabel: "Plugin sub-pages",
+      subPageItems: ["Plugins", "Skills", "Hooks", "Workbenches"],
+      subPageBody: (page) => `The “${page}” sub-page's content.`,
+      subPageImport: "Import skill",
+      subPageSearch: "Search plugins",
+      subPageMarket: "Open the Plugins page",
+      withButton: "With a button",
+      withSearch: "With a search box and a button",
     },
     badges: {
       pills: "Label pills",
@@ -941,6 +993,20 @@ export const en: GalleryStrings = {
       dotAnchor: "Plugins",
       pill: "Update pill",
       pillText: "3 updates",
+      statusMarks: "Status marks",
+      statusMarksHint:
+        "The glyph carries the tone; the word stays in muted ink, never coloured. Hover says what the status means for this thing. A status that asks nothing of the reader takes no tone: its glyph recedes.",
+      statusMarkSamples: {
+        success: "Installed",
+        attention: "Update",
+        danger: "Failed to load",
+        done: "Done",
+        neutral: "Disabled",
+        info: "Other machines only",
+      },
+      statusMarkHint: (word) => `On hover: what “${word}” means for this plugin.`,
+      statusMarkReceding: "Available",
+      statusMarkPill: "For comparison: the label pill in the same tone",
       statTile: "Stat tiles",
       spend: "Spend this month",
       spendDetail: "Organization budget $40",
@@ -1169,10 +1235,24 @@ export const en: GalleryStrings = {
     avatars: {
       user: "User avatar",
       agent: "Agent avatar",
-      agentAside: "The active theme's drawing for twelve agents, one in each colour",
+      agentAside:
+        "The active theme's drawing for twelve agents, one in each colour, wearing the accessories in turn",
+      wear: "What an agent wears",
+      wearAside:
+        "One of eight, picked by the agent's id like its colour, and painted in the colour opposite its own",
+      accessories: {
+        none: "Nothing",
+        scarf: "Scarf",
+        beanie: "Beanie",
+        cap: "Cap",
+        headphones: "Headphones",
+        sprout: "Sprout",
+        bow: "Bow",
+        glasses: "Glasses",
+      },
       variants: "Every theme's drawing",
       variantsAside:
-        "One smiling ball penguin, drawn once per theme; the colour follows the agent alone",
+        "One small egg-shaped penguin, drawn once per theme; the colour and the accessory follow the agent alone",
       sizeCaption: (px) => `${px}px`,
       picture: "An agent's own picture",
       pictureAside:
@@ -1188,13 +1268,16 @@ export const en: GalleryStrings = {
       ],
     },
     site: {
+      nav: "Navigation bar",
+      navHint:
+        "Shared by the three sites: More ends the row and holds AMSP and Theme Packs; it opens on hover or a press, and reads as current while one of them is. The phone menu lists the two set in under More.",
       footer: "Footer",
       footerHint:
         "The landing page's brand and link columns; the docs' single line of copyright and links.",
       tagline: "Out-of-the-Box RSI Framework.",
       columns: [
         { title: "Product", links: ["Cases", "Quick start", "Blog", "Download"] },
-        { title: "Resources", links: ["GitHub repository", "Docs", "Gallery"] },
+        { title: "Resources", links: ["GitHub repository", "Docs", "Theme Packs"] },
       ],
       lineLinks: ["Home", "GitHub repository", "Apache-2.0 License"],
       copyright: "© 2026 Prism Shadow. Open source under Apache-2.0.",
@@ -1213,6 +1296,22 @@ export const en: GalleryStrings = {
         teal: "Perspectives",
         neutral: "Release notes",
       },
+      dataPage: "Data pages",
+      dataPageHint:
+        "Shared by the Plugins, Benchmarks and Leaderboards pages: the link back to the list, the segmented view switch, the toolbar's menu buttons and the data table. A menu button the current view has no use for greys out in place, so the toolbar holds still when the view changes.",
+      dataBack: "Plugins",
+      dataBackLabel: "Back to Plugins",
+      dataViews: "Views",
+      dataViewOptions: { table: "Table", pareto: "Pareto", waffle: "Waffle" },
+      dataFilter: "Filter",
+      dataColumns: "Columns",
+      dataColumnsHint: "Columns apply to the table",
+      dataHead: { rank: "Rank", name: "Algorithm", score: "Score", cost: "Cost" },
+      dataRows: [
+        ["SkillOpt RSI toolkit", "70.3", "$1.86"],
+        ["SkillAdam RSI toolkit", "69.0", "$1.96"],
+        ["Baseline", "56.3", "$2.38"],
+      ],
       article: "Article",
       articleHint:
         "The prose blog posts and doc pages share. Headings carry anchors, fenced code is highlighted, and tab groups and callouts are the docs' Markdown extensions; its contents sit on the right.",
@@ -1293,6 +1392,13 @@ export const en: GalleryStrings = {
       crumbs: "Path strip",
       crumbsHint:
         "When the path does not fit, its leading parts fold into one “…”; the file name gives way last",
+      narrow: "Narrow tree pane",
+      narrowHint:
+        "With no room for its search box, the box folds into a magnifier that opens it across the header row; an empty box folds back on Esc or blur",
+      narrowFolded: "Folded",
+      narrowQuery: "Holding a query: stays open",
+      refresh: "Refresh",
+      upload: "Upload",
       menu: "File menu",
       menuFile: "File",
       menuFolder: "Folder",
@@ -1413,6 +1519,7 @@ export const en: GalleryStrings = {
         "| Setting | Value |\n| --- | --- |\n| Model | `gpt-5.6-luna` |\n| Approval | Ask before writing files |\n| Sandbox | Workspace only |\n| Context window | 400k tokens |",
       code: "Code",
       surface: "Code surface: line numbers, no frame",
+      surfaceLong: "A long file, wrapped: chunks of 100 lines, each drawn as it nears the view",
       diff: "Diff",
       unified: "Unified",
       split: "Side by side",
@@ -1854,6 +1961,7 @@ export const en: GalleryStrings = {
         "The local proxy listens on 127.0.0.1:9090, but ~/.bashrc returns early in a non-interactive shell, so exec_command never sees http_proxy and the rest of the proxy variables; export the proxy in the command itself or pass --noproxy '*' for local addresses, or curl answers 502 for a local port.",
         'Inside the PenguinHarness v0.2.15 server process every Gemini model call fails with "Failed to parse URL from [object Request]": the bundled fetch and Request disagree. Upgrading to 0.2.16 fixes it.',
         "Verify patent numbers and papers with a tool before citing them.",
+        "A plugin wrote this memory: after every Task the continual-learning hook turns what the conversation showed is worth keeping into one entry, and the puzzle mark after its title says where it came from; a click opens that plugin's detail.",
       ],
       viewMemory: (name: string) => `View ${name}`,
       editMemory: (name: string) => `Edit ${name}`,
@@ -1868,6 +1976,84 @@ export const en: GalleryStrings = {
       log: "Log",
       logHint: "A job still running: its latest line in the body ink.",
       logLabel: "Update output",
+      cards: "Entity cards",
+      cardsHint:
+        "The card's body is one button that opens the detail, with the controls outside it; once the card is wide enough the controls show their words, before that only their glyphs, the word as the tooltip. Below, the same cards in a 360 px column.",
+      cardSection: "Office productivity",
+      cardCount: (n) => `${n} plugins`,
+      cardNarrow: "A 360 px column",
+      cardSamples: [
+        {
+          title: "Data analysis",
+          description: "Reads tables and databases, draws charts and writes up the findings.",
+          status: "Installed",
+          statusHint: "2 agents in this project have it.",
+          usedBy: "used by 2 agents",
+        },
+        {
+          title: "Meeting notes",
+          description: "Turns a meeting recording into notes and to-dos.",
+          status: "Update",
+          statusHint: "1 agent's copy is behind the library.",
+          usedBy: "used by 1 agent",
+        },
+        {
+          title: "Slides",
+          description: "Builds a slide deck from an outline.",
+          status: "Available",
+          statusHint: "No agent has it yet.",
+          usedBy: "",
+        },
+        {
+          title:
+            "A plugin whose display name is longer than any card can hold, so it truncates and shows whole on hover",
+          description:
+            "Its one-line description runs long too: it reads the whole repository, reviews each changed file against the team's conventions, and writes its findings as comments ready to paste into the pull request.",
+          status: "Installed",
+          statusHint: "1 agent in this project has it.",
+          usedBy: "used by 1 agent",
+        },
+      ],
+      cardTag: "Office productivity",
+      cardBuiltin: "Built in",
+      cardInstall: "Install",
+      cardUpdate: "Update",
+      cardManage: "Manage installs",
+      cardUninstall: "Uninstall",
+      cardActionName: (verb, title) => `${verb} ${title}`,
+      metaLine: "Facts line",
+      metaLineHint:
+        "A thing's facts on one line, a middle dot between each; when they do not fit the last one truncates, the rest keep their width, and the line never wraps.",
+      metaLineUsedBy: "used by 12 agents, 3 of them on other machines as last seen",
+      factRows: "Fact rows in a detail",
+      factRowsHint:
+        "One thing a row: a glyph, the name, a few quiet facts and the marks at the end; the last fact takes the remaining width and truncates, the marks keep theirs. A missing part is in muted ink throughout.",
+      factListLabel: "On this agent",
+      factKeys: "Waiting for NOTES_TOKEN in the vault",
+      factSignIn: "Needs a sign-in",
+      factMissing: "Missing",
+      factMissingHint:
+        "The library ships this part and the agent does not have it. Update puts it back.",
+      trailRows: "Marks after the title",
+      trailRowsHint:
+        "Marks and chips follow the title on its line and keep their width; when the row is too narrow they wrap under it. A click on the row's name or anywhere else on it opens the row; its controls keep their own clicks. A part a plugin installed carries the puzzle mark: hover names the plugin, and a click finds it in the plugin list below, whose row scrolls to the middle of the view, takes the focus and wears an accent ring for about 2 s, then fades.",
+      trailListLabel: "Hook packages",
+      trailFromPlugin: (plugin) =>
+        `Installed by the ${plugin} plugin. Click to find it in the list below.`,
+      trailPluginsCaption: "The plugin list the puzzle points into",
+      trailPluginsLabel: "Plugins",
+      trailDescriptions: [
+        "After every Task, writes down what this conversation taught that is worth keeping.",
+        "Reminds the model of the current goal before every reply.",
+        "A hook package of your own, from no plugin.",
+      ],
+      trailExport: (name) => `Export ${name}`,
+      trailUninstall: (name) => `Uninstall ${name}`,
+      listStates: "A list's loading and empty states",
+      listLoading: "On the first read",
+      listEmpty: "With nothing in it",
+      listEmptyText: "This agent has no hook packages yet.",
+      memoryFromPlugin: "Written by the Continual learning plugin",
     },
     machines: {
       pills: "Status pills",

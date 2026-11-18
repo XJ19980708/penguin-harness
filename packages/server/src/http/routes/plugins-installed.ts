@@ -52,6 +52,7 @@
  * restored on the previous list, and the answer is "did not take".
  */
 import { Hono } from "hono";
+import path from "node:path";
 import { Bind, Component, Use } from "@prismshadow/penguin-core/kernel";
 import type { AppEnv } from "../../auth/middleware.js";
 import type {
@@ -85,12 +86,15 @@ import type { PluginPackages } from "../../mechanisms/plugins.js";
 import {
   installedPackageDir,
   installPluginChannel,
+  linkPluginDirectory,
+  linkedPackages,
   PluginInstallError,
   pluginsPrefix,
   readInstalledVersion,
   type InstalledPackage,
 } from "../../plugin/install.js";
 import { indexChannelLookup, type IndexChannel } from "../../plugin/registry.js";
+import { IndexSources } from "../../plugin/index-config.js";
 import { parsePluginSource, type PluginSource } from "../../plugin/source.js";
 import { parsePluginArchive } from "../../services/plugin-archive.js";
 import { PluginHost, pluginHostFrom, PLUGINS_RESOURCE_ID } from "../../plugin/host.js";
@@ -214,6 +218,13 @@ export interface InstalledPluginsDeps {
    * the model config changes under.
    */
   syncFleet: (projectId: string) => void;
+  /**
+   * Links a local package directory into the prefix (`penguin plugin link`); absent in tests
+   * that stand in `packages` and do not exercise links. npm's own link: `npm install <dir>`
+   * records a `file:` dependency and puts the symlink in node_modules, so the link and its
+   * record are npm's to keep in step.
+   */
+  link?: (dir: string, overwrite: boolean) => Promise<InstalledPackage>;
 }
 
 export function installedPluginRoutes(deps: InstalledPluginsDeps): Hono<AppEnv> {
@@ -242,13 +253,24 @@ export function installedPluginRoutes(deps: InstalledPluginsDeps): Hono<AppEnv> 
   const view = async (projectId: string): Promise<InstalledPluginsResponse> => {
     const tables = await tablesOf(projectId);
     const here = effectivePluginTable(tables, deps.machineId);
-    // Every name any table lists, shared ones first: the page shows where each one runs.
+    // Every name any table lists, shared ones first, then the names linked into the prefix:
+    // the page shows where each one runs. A linked name no table lists is the author's row
+    // before any Project asked for it — present with its disk truth, not active.
     const names = [
       ...new Set([
         ...Object.keys(tables.all),
         ...Object.values(tables.machines).flatMap((t) => Object.keys(t)),
       ]),
     ];
+    // npm link's own records: the prefix manifest's `file:` dependencies naming a directory
+    // whose node_modules entry exists (linkedPackages: a `file:` naming a tarball is an
+    // uploaded zip's install, not a link; a dangling link stays in the table so its row
+    // reports its fault).
+    const links = await linkedPackages(pluginsPrefix(deps.root));
+    for (const [name] of links) {
+      if (!names.includes(name)) names.push(name);
+    }
+    const linkTable = links;
     const { loaded, skipped, unsatisfied } = deps.running();
     const bases = pluginBases(deps.root, deps.assetsDir());
     // `builtin` on a row is where the package CAME FROM, a tag, not a second way of being
@@ -273,7 +295,9 @@ export function installedPluginRoutes(deps: InstalledPluginsDeps): Hono<AppEnv> 
           builtin: false,
           modules: [],
           replaces: [],
-          ...(where.here ? { error: declared.error } : {}),
+          // A link's row exists because the link exists, not because a Project asked: the
+          // fault IS its disk truth, and the page reads it wherever the row shows.
+          ...(where.here || linkTable.has(specifier) ? { error: declared.error } : {}),
           ...where,
         });
         continue;
@@ -289,6 +313,7 @@ export function installedPluginRoutes(deps: InstalledPluginsDeps): Hono<AppEnv> 
         builtin: declared.builtin,
         modules: declared.modules,
         replaces: declared.replaces,
+        ...(linkTable.has(specifier) ? { linked: true, linkPath: linkTable.get(specifier) } : {}),
         ...(!active && failure !== undefined ? { error: failure } : {}),
         ...(unmet !== undefined
           ? { unsatisfied: { disabled: unmet.disabled, reason: unmet.reason } }
@@ -329,13 +354,26 @@ export function installedPluginRoutes(deps: InstalledPluginsDeps): Hono<AppEnv> 
     return s;
   };
 
-  /** What POST may install: a registry name, or an https link (plugin/source.ts). */
+  /** What POST may install: a registry name, an https link, or a local directory to link. */
   const sourceOf = (value: unknown): PluginSource => {
     try {
       return parsePluginSource(value);
     } catch (err) {
       throw new HttpError(400, "bad_request", err instanceof Error ? err.message : String(err));
     }
+  };
+
+  /** A body asking for a directory link: `linkPluginDirectory`'s overwrite, off unless asked. */
+  const linkOptions = (body: Record<string, unknown>): { dir: string; overwrite: boolean } => {
+    const dir = typeof body.dir === "string" ? body.dir.trim() : "";
+    if (dir === "" || !path.isAbsolute(dir)) {
+      throw new HttpError(
+        400,
+        "bad_request",
+        "link needs the absolute path of a local package directory.",
+      );
+    }
+    return { dir, overwrite: body.overwrite === true };
   };
 
   /** npm's failure, as the answer: what it said, never a 500. */
@@ -574,21 +612,14 @@ export function installedPluginRoutes(deps: InstalledPluginsDeps): Hono<AppEnv> 
     if (!(c.req.header("accept") ?? "").includes("text/event-stream")) {
       return c.json(await performInstall(projectId, source, machineId));
     }
-    // The same install, read as it arrives: the channel's download in `download` events (the
-    // percent steps installPluginChannel reports), `npm` once the bytes are in, the finished
-    // list as `result`. A failure that the JSON answer would have carried as a status rides
-    // as an `error` event with that status, so the page raises the same error either way.
+    // The same install, read as it arrives: `npm` while npm works (npm's own download is
+    // npm's to report), `result` the finished list. A failure that the JSON answer would
+    // have carried as a status rides as an `error` event with that status, so the page
+    // raises the same error either way.
     return eventStream(c, async (sink) => {
       try {
-        await sink.send("download", null, JSON.stringify({ received: 0, total: null }));
-        const next = await performInstall(
-          projectId,
-          source,
-          machineId,
-          (received, total) =>
-            void sink.send("download", null, JSON.stringify({ received, total })),
-        );
         await sink.send("npm", null, "{}");
+        const next = await performInstall(projectId, source, machineId);
         await sink.send("result", null, JSON.stringify(next));
       } catch (err) {
         const [status, code, message] =
@@ -600,6 +631,51 @@ export function installedPluginRoutes(deps: InstalledPluginsDeps): Hono<AppEnv> 
           .catch(() => undefined);
       }
     });
+  });
+
+  /**
+   * Links a local package directory into the prefix (`penguin plugin link`, admin). The
+   * directory is vetted exactly as an install vets what it put in the prefix — a shipped
+   * name, or a package that is no plugin, refuses and takes the link back out. The linked
+   * package is this server's own: not listed by any Project's table, it loads only when a
+   * Project asks for the name, and a Project listing it after a link resolves the author's
+   * directory on this machine alone (a link names no bytes another machine could fetch).
+   */
+  app.post("/link", async (c) => {
+    requireAdmin(c);
+    const projectId = scope(c);
+    const body = await readJson(c);
+    const { dir, overwrite } = linkOptions(body);
+    if (deps.link === undefined) {
+      throw new HttpError(400, "bad_request", "linking is not available on this server.");
+    }
+    let linked: InstalledPackage;
+    try {
+      linked = await deps.link(dir, overwrite);
+    } catch (err) {
+      if (err instanceof PluginInstallError) {
+        throw new HttpError(400, "plugin_link_refused", err.message);
+      }
+      throw err;
+    }
+    if ((await shippedNames()).includes(linked.name)) {
+      await deps.packages.remove(deps.root, linked.name);
+      throw new HttpError(
+        409,
+        "plugin_shipped",
+        `${linked.name} ships with this server: a package under its name would replace it for every Project.`,
+      );
+    }
+    const kinds = kindsOf(linked.name);
+    if (!kinds.library && !kinds.modules) {
+      await deps.packages.remove(deps.root, linked.name);
+      throw new HttpError(
+        400,
+        "not_a_plugin",
+        `${linked.name} is not a PenguinHarness plugin: its ifaces.json contributes no Skills, hook package, MCP servers or workbenches, and lists no server modules with a code entry (a package without an ifaces.json was never built: its build runs penguin-gen-ifaces).`,
+      );
+    }
+    return c.json(await answer(projectId, { name: linked.name, version: null }), 201);
   });
 
   app.post("/archive", async (c) => {
@@ -647,6 +723,18 @@ export function installedPluginRoutes(deps: InstalledPluginsDeps): Hono<AppEnv> 
     const projectId = scope(c);
     const specifier = nameOf(c.req.query("specifier"));
     const machineId = machineOf(c.req.query("machineId"));
+    // A link goes with this verb too: `npm uninstall` takes a `file:` dependency out the same
+    // way it takes any package out — the symlink and the manifest entry both go, the author's
+    // directory stays. npm's uninstall is idempotent, so is this. An uploaded zip's tarball
+    // install is also a `file:` dependency, but it is not a LINK (linkedPackages leaves it
+    // out) — it goes through the Project-table removal below like any install.
+    if ((await linkedPackages(pluginsPrefix(deps.root))).has(specifier)) {
+      if (!(await readPluginClosure(deps.root, deps.machineId)).includes(specifier)) {
+        await deps.packages.remove(deps.root, specifier);
+      }
+      deps.syncFleet(projectId);
+      return c.json(await view(projectId));
+    }
     const without = (table: PluginTables["all"] | undefined) => {
       const kept = { ...table };
       delete kept[specifier];
@@ -733,6 +821,7 @@ export function installedPluginRoutes(deps: InstalledPluginsDeps): Hono<AppEnv> 
 export class InstalledPluginRoutes {
   @Use() private readonly config!: Config;
   @Use() private readonly hmr!: Hmr;
+  @Use() private readonly sources!: IndexSources;
   @Use() private readonly reassembly!: Reassembly;
   @Use() private readonly projectConfig!: ProjectConfigStore;
   @Use() private readonly access!: Access;
@@ -761,11 +850,15 @@ export class InstalledPluginRoutes {
       access: this.access,
       apply: (change) => this.reassembly.reassemble(change),
       packages: this.packages,
-      // The published index's github channels, for a name npm has no answer for; looked up
-      // only then, cached at the listing's cadence (indexChannelLookup).
-      channelOf: indexChannelLookup(this.config.pluginIndexUrl ?? null),
+      // The configured index sources' github channels, for a name npm has no answer for; looked
+      // up only then, cached at the listing's cadence (indexChannelLookup). The sources are
+      // read per lookup: the plugin-index settings group's document, changed without a restart.
+      channelOf: indexChannelLookup(() => this.sources.urls()),
       // The plugin list rides the same trip the model config takes to a Project's machines.
       syncFleet: (projectId) => void this.machines.syncConfigEverywhere(projectId),
+      // `penguin plugin link`: the npm prefix is this server's own disk, so a local directory
+      // links straight into it.
+      link: (dir, overwrite) => linkPluginDirectory(this.config.root, dir, overwrite),
     });
   }
 }

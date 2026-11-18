@@ -86,6 +86,8 @@ import {
   isLongPressPointer,
   languageForFileName,
   noAutofill,
+  readCodePlace,
+  restoreCodePlace,
   toastError,
   toastInfo,
   toastSuccess,
@@ -93,12 +95,13 @@ import {
   useFilesLayout,
   useMarkdownReader,
   useRowContextMenu,
-  type EditorScroll,
+  type CodePlace,
   type FileMenuTarget,
   type PreviewView,
   type TreeToggle,
   type WorkspaceFileMenuLabels,
 } from "@prismshadow/penguin-ui";
+import type { Components } from "react-markdown";
 
 import type { WorkspaceSearchHit } from "@prismshadow/penguin-server/api";
 import { ApiError } from "../../api/client";
@@ -130,7 +133,6 @@ import {
   flattenTree,
   isDirty,
   isWithin,
-  looksLikeText,
   movedListings,
   movedPath,
   movedSet,
@@ -142,10 +144,10 @@ import {
   readWrapLines,
   readTreeVisible,
   readTreeWidth,
+  resolveRelative,
   selectionBlock,
   stemEnd,
   upsertEntry,
-  utf8Complete,
   withExpanded,
   writeWrapLines,
   writeTreeVisible,
@@ -154,6 +156,7 @@ import {
   type EditorState,
   type Listings,
 } from "../../lib/workspace-tree";
+import { fetchTextPreview } from "../../lib/text-preview";
 
 import { restoreSelection } from "../../components/ui/text-selection";
 import { STAT_ICONS } from "../../lib/stat-icons";
@@ -170,26 +173,11 @@ import { toastApiError } from "../../lib/toast-api-error";
  */
 const MD_RENDER_LIMIT = 64 * 1024;
 
-/** Bytes examined to decide whether a file with an unknown extension is text. */
-const SNIFF_BYTES = 8 * 1024;
 /** How long the search box settles before the query is sent. A Workspace walk is not free, and nobody reads results for a prefix they are still typing. */
 const SEARCH_DEBOUNCE_MS = 250;
 
 /** An external reference with a scheme (http(s)/mailto/data, etc.), passed through as-is in the md rendered view. */
 const EXTERNAL_REF_RE = /^[a-z][a-z0-9+.-]*:/i;
-
-/** Resolves relative references (image src / link href) within the md rendered view: based on
- *  the md file's directory, handling ./ and ../ (clamped to the root if it would go past it);
- *  a leading "/" is treated as the Workspace root. */
-function resolveRelative(baseDir: string, ref: string): string {
-  const out = ref.startsWith("/") || baseDir === "" ? [] : baseDir.split("/");
-  for (const seg of ref.split("/")) {
-    if (seg === "" || seg === ".") continue;
-    if (seg === "..") out.pop();
-    else out.push(seg);
-  }
-  return out.join("/");
-}
 
 /**
  * Storage shim injected into the HTML preview: when the sandbox lacks allow-same-origin, the
@@ -242,55 +230,6 @@ let previewSeq = 0;
  */
 const unsavedDrafts = new Map<string, string>();
 const draftKey = (scopeKey: string, path: string): string => `${scopeKey}\n${path}`;
-
-/**
- * Reads a file as text, bounded to TEXT_PREVIEW_LIMIT bytes: the body is read as a stream
- * and cancelled past the cap, so a large log never downloads whole for a preview. With
- * `sniff`, the first chunk decides whether the file is text at all — null means it is not,
- * and nothing more of it is read. A response with no stream is thrown on rather than read
- * whole: `arrayBuffer()` would pull the entire file into memory, which is the one thing the
- * cap exists to prevent.
- *
- * The version marker is read alongside the bytes and is required: it is what the editor
- * saves against, and a response that carries content without it could only mean the
- * endpoint is broken — better a thrown read than a save with no precondition.
- */
-async function fetchTextPreview(
-  url: string,
-  sniff: boolean,
-): Promise<{ content: string; truncated: boolean; version: string } | null> {
-  const res = await fetch(url, { credentials: "same-origin" });
-  if (!res.ok) throw new Error(String(res.status));
-  if (res.body === null) throw new Error("no response body");
-  const version = res.headers.get("etag");
-  if (version === null) throw new Error("no version header");
-  const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    if (chunks.length === 0 && sniff && !looksLikeText(value.subarray(0, SNIFF_BYTES))) {
-      await reader.cancel();
-      return null;
-    }
-    chunks.push(value);
-    total += value.length;
-    if (total > TEXT_PREVIEW_LIMIT) {
-      await reader.cancel();
-      break;
-    }
-  }
-  const bytes = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.length;
-  }
-  const truncated = total > TEXT_PREVIEW_LIMIT;
-  const shown = truncated ? utf8Complete(bytes.subarray(0, TEXT_PREVIEW_LIMIT)) : bytes;
-  return { content: new TextDecoder().decode(shown), truncated, version };
-}
 
 /**
  * The file's current version marker, without downloading it: the body is cancelled as soon
@@ -628,11 +567,11 @@ export function WorkspaceBrowser({
   const [menuSelection, setMenuSelection] = useState<PreviewSelection | null>(null);
   const previewBodyRef = useRef<HTMLDivElement | null>(null);
   /** Where the source view was scrolled when Edit was pressed: the editor opens there. */
-  const editorOpening = useRef<EditorScroll | undefined>(undefined);
+  const editorOpening = useRef<CodePlace | undefined>(undefined);
   /** The editor's scroll box, read on the way out of the editor. */
   const editorHost = useRef<HTMLDivElement | null>(null);
   /** Where the source view takes up once it is back on screen after the editor. */
-  const bodyScrollOnReturn = useRef<EditorScroll | null>(null);
+  const bodyScrollOnReturn = useRef<CodePlace | null>(null);
   /** The directory the menu's own picker uploads into (the toolbar's picker always means the current one). */
   const menuUploadDir = useRef("");
   const menuUploadRef = useRef<HTMLInputElement | null>(null);
@@ -1322,7 +1261,7 @@ export function WorkspaceBrowser({
     const current = previewRef.current;
     if (current === null || !canEditPreview(current)) return;
     const body = previewBodyRef.current;
-    const at = body === null ? undefined : { top: body.scrollTop, left: body.scrollLeft };
+    const at = body === null ? undefined : readCodePlace(body);
     // Content and version are read together and stored together, so one missing means both
     // are: an isolated HTML preview mounted without its text. Read it now, and refuse a
     // file the bounded read cannot hold whole — saving a partial text back would truncate
@@ -1391,8 +1330,7 @@ export function WorkspaceBrowser({
    */
   const leaveEditor = (): void => {
     const host = editorHost.current;
-    bodyScrollOnReturn.current =
-      host === null ? null : { top: host.scrollTop, left: host.scrollLeft };
+    bodyScrollOnReturn.current = host === null ? null : readCodePlace(host);
     focusAfterLeave.current = true;
     discardEditor();
   };
@@ -2206,6 +2144,63 @@ export function WorkspaceBrowser({
       </>
     );
 
+  /**
+   * The rendered Markdown view's adapters, rebuilt only for another file or another read of it:
+   * react-markdown takes them as element types, so a fresh map would make the reader parse the
+   * file again and remount every image and link on each render of the panel — and the panel
+   * renders on every heading the reader scrolls past.
+   */
+  const mdPath = preview?.path ?? "";
+  const mdNonce = preview?.nonce ?? 0;
+  const markdownComponents = useMemo<Components>(
+    () => ({
+      // Relative images are resolved against the md file's directory into the file API
+      // (otherwise resolving against the app's origin would always 404). `v` is the read
+      // nonce, not a cache-buster for its own sake: a Workspace image is rewritten under
+      // the same path, and without it a re-read of the Markdown would keep painting the
+      // previous bytes from the browser's image cache.
+      img: ({ src, alt }) => (
+        <img
+          src={
+            typeof src === "string" && !EXTERNAL_REF_RE.test(src)
+              ? `${files.fileUrl(resolveRelative(parentDir(mdPath), src))}&v=${mdNonce}`
+              : src
+          }
+          alt={alt ?? ""}
+          loading="lazy"
+          className="max-w-full"
+        />
+      ),
+      // External links open in a new tab; relative links point to a Workspace file,
+      // clicking opens it in the tree and the preview; in-page anchors keep default behavior.
+      a: ({ href, children }) => {
+        if (typeof href !== "string" || href.startsWith("#")) {
+          return <a href={href}>{children}</a>;
+        }
+        if (EXTERNAL_REF_RE.test(href)) {
+          return (
+            <a href={href} target="_blank" rel="noreferrer">
+              {children}
+            </a>
+          );
+        }
+        const target = resolveRelative(parentDir(mdPath), href);
+        return (
+          <a
+            href={files.fileUrl(target)}
+            onClick={(e) => {
+              e.preventDefault();
+              openFile(target, { locate: true });
+            }}
+          >
+            {children}
+          </a>
+        );
+      },
+    }),
+    [files, openFile, mdPath, mdNonce],
+  );
+
   /** A part of the view still on its way, or the fetch that failed to bring it. */
   const pendingSource = (): PreviewView =>
     sourceError !== null ? { kind: "error", message: sourceError } : { kind: "loading" };
@@ -2290,51 +2285,7 @@ export function WorkspaceBrowser({
         truncatedNote,
         // Another file starts the reader over: at the top, its find closed.
         docKey: p.path,
-        components: {
-          // Relative images are resolved against the md file's directory into the file API
-          // (otherwise resolving against the app's origin would always 404). `v` is the read
-          // nonce, not a cache-buster for its own sake: a Workspace image is rewritten under
-          // the same path, and without it a re-read of the Markdown would keep painting the
-          // previous bytes from the browser's image cache.
-          img: ({ src, alt }) => (
-            <img
-              src={
-                typeof src === "string" && !EXTERNAL_REF_RE.test(src)
-                  ? `${files.fileUrl(resolveRelative(parentDir(p.path), src))}&v=${p.nonce}`
-                  : src
-              }
-              alt={alt ?? ""}
-              loading="lazy"
-              className="max-w-full"
-            />
-          ),
-          // External links open in a new tab; relative links point to a Workspace file,
-          // clicking opens it in the tree and the preview; in-page anchors keep default behavior.
-          a: ({ href, children }) => {
-            if (typeof href !== "string" || href.startsWith("#")) {
-              return <a href={href}>{children}</a>;
-            }
-            if (EXTERNAL_REF_RE.test(href)) {
-              return (
-                <a href={href} target="_blank" rel="noreferrer">
-                  {children}
-                </a>
-              );
-            }
-            const target = resolveRelative(parentDir(p.path), href);
-            return (
-              <a
-                href={files.fileUrl(target)}
-                onClick={(e) => {
-                  e.preventDefault();
-                  openFile(target, { locate: true });
-                }}
-              >
-                {children}
-              </a>
-            );
-          },
-        },
+        components: markdownComponents,
       };
     }
     if (p.kind === "text" || p.kind === "html" || p.kind === "md") {
@@ -2506,8 +2457,7 @@ export function WorkspaceBrowser({
         const at = bodyScrollOnReturn.current;
         if (el !== null && at !== null) {
           bodyScrollOnReturn.current = null;
-          el.scrollTop = at.top;
-          el.scrollLeft = at.left;
+          restoreCodePlace(el, at);
         }
       }}
       bodyProps={{

@@ -48,6 +48,7 @@ import { WeChatTransportProvider } from "./runtime/messaging/wechat-connector.js
 import { WeChatScanTransportProvider } from "./runtime/messaging/wechat-scan.js";
 import { PluginConfig, PluginConfigProvider } from "./plugin/config.js";
 import { PluginConfigAdmin, PluginConfigPage } from "./plugin/config-page.js";
+import { IndexSources, PluginIndexSettings, StoredIndexSources } from "./plugin/index-config.js";
 import { PluginCliCommandsProvider } from "./plugin/cli-commands.js";
 import {
   CoreSessionLoaders,
@@ -137,6 +138,7 @@ import {
   DesktopRoutes,
   DesktopTrayRoutes,
   DesktopUpdateRoutes,
+  DesktopWindowRoutes,
 } from "./http/routes/desktop.js";
 import { CommandRoutes } from "./http/routes/command.js";
 import { InstallRoutes } from "./http/routes/install.js";
@@ -146,6 +148,8 @@ import { EventsRoutes } from "./http/routes/events.js";
 import { PluginRegistryRoutes, PluginRoutes } from "./http/routes/plugins.js";
 import { InstalledPluginRoutes } from "./http/routes/plugins-installed.js";
 import { NpmPluginPackages } from "./plugin/install.js";
+import { PluginSourceSettings } from "./plugin/source-settings.js";
+import { PluginMirrorSettings } from "./plugin/mirror-settings.js";
 import { PluginLibraryModule } from "./plugin/library-module.js";
 import { PluginUiRoutes } from "./http/routes/plugin-ui.js";
 import { SuggestIdRoutes } from "./http/routes/suggest-id.js";
@@ -422,6 +426,28 @@ export class AccountDataModule {}
 export class PluginConfigModule {}
 
 /**
+ * Plugin sources as a group of their own: the settings node declares the group and applies
+ * it to the installer, and needs plugin configuration (and through it the database), so it
+ * sits above it — the same shape the sandbox settings' module has.
+ */
+@Module({
+  children: [PluginSourceSettings, PluginMirrorSettings],
+  exports: [],
+})
+export class PluginSourceSettingsModule {}
+
+/**
+ * The plugin index's sources as a settings group, and the reader the listing and the install
+ * face ask per request: above the config store (it reads the document) and beside the routes
+ * that consume it.
+ */
+@Module({
+  children: [PluginIndexSettings, StoredIndexSources],
+  exports: [IndexSources],
+})
+export class PluginIndexModule {}
+
+/**
  * Sandbox settings as a group of their own: the sandbox service boots on the capability-free
  * floor, while its settings group and the node applying it need plugin configuration (and
  * through it the database), so they sit above it.
@@ -509,6 +535,7 @@ export class CompanyModule {}
     DesktopUpdateRoutes,
     DesktopTrayRoutes,
     DesktopPrivacySettingsRoutes,
+    DesktopWindowRoutes,
     PluginRoutes,
     PluginRegistryRoutes,
     NpmPluginPackages,
@@ -546,6 +573,8 @@ export class ThemesModule {}
     SettingsModule,
     AccountDataModule,
     PluginConfigModule,
+    PluginSourceSettingsModule,
+    PluginIndexModule,
     IdentityModule,
     ProjectsModule,
     SessionRuntimeModule,

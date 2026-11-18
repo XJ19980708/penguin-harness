@@ -965,6 +965,11 @@ export const zh = {
       "开关下方是各已装载插件在其包里声明的选项，表单按插件自己的 schema 生成。与插件本身一样是服务器全局的；保存后立即送达插件，无需重启。没有声明选项的插件不会出现在这里。顶部的开关只影响本浏览器在插件页列出哪些插件。",
     /** The page's own switch, above the server's cards: a display preference of this browser. */
     pluginsIncompatibleOnly: "只显示不兼容的插件",
+    /** A list field's editor: the row buttons and the add row. */
+    pluginListMoveUp: "上移",
+    pluginListMoveDown: "下移",
+    pluginListRemove: "删除",
+    pluginListAdd: "添加",
     /** A secret field with a stored value: submitting it empty keeps the stored one. */
     pluginSecretKeepHint: "留空保持已保存的值不变",
     pluginSecretClear: "清除已存值",
@@ -1211,6 +1216,7 @@ export const zh = {
     checkingUpdates: "正在检查更新…",
     openDevTools: "打开开发者工具",
     projectOnGitHub: "在 GitHub 上查看项目",
+    newWindow: "新建窗口",
   },
   /** The rescue surface (src/rescue/): the panel a render error leaves, and safe mode. */
   rescue: {
@@ -1244,7 +1250,7 @@ export const zh = {
     title: "工作台",
     count: (n: number) => `${n} 个工作台`,
     open: "打开工作台",
-    /** The Agent-wide switch on the Plugins tab, and what it does. */
+    /** The Agent-wide switch on the Plugins tab's Workbenches sub-page, and what it does. */
     enableAll: "启用工作台",
     enableAllHint:
       "关闭后，这个 Agent 的所有工作台都会停用：对话页和应用中心不再显示它们，页面也打不开。每个工作台的开关、数据和历史版本都会保留，重新打开即恢复原样。",
@@ -1255,7 +1261,7 @@ export const zh = {
     /** Why a workbench's switch is greyed: the Agent-wide one is off. */
     offByAll: "「启用工作台」已关闭，先打开它",
     /** The full-page route of a switched-off workbench. */
-    offPage: "这个工作台已关闭。可以在 Agent 设置的「插件」里打开它。",
+    offPage: "这个工作台已关闭。可以在 Agent 设置的「插件 › 工作台」里打开它。",
     noMatches: "没有匹配的智能体。",
     searchAgents: "搜索智能体",
 
@@ -1285,6 +1291,8 @@ export const zh = {
         : `让这个页面占满整个应用；${palette} 打开命令面板可退出`,
     exitFullPage: "退出全页模式（回到工作台）",
     exitFullPageButton: "退出全屏",
+    exitBallTuck: "收起到边缘",
+    exitBallShow: "显示退出按钮",
     retryHistory: "重试",
     exitHint: (palette: string | null): string =>
       palette === null ? "打开命令面板可回到工作台。" : `按 ${palette} 打开命令面板可回到工作台。`,
@@ -1336,12 +1344,11 @@ export const zh = {
     importOverwriteAction: "覆盖导入",
     /** The row's More menu: downloads the workbench's source as a zip. */
     exportWorkbench: "打包导出",
-    /** The row's switch (its accessible name, with the title): whether the workbench has a shortcut in the App Center. */
-    showInAppCenter: "显示在应用中心",
+    /** Whether the workbench has a shortcut in the App Center: the words beside the row's switch (which flip it too), its accessible name with the title, and the More menu's checkable row. */
+    showInAppCenter: "展示到应用中心",
+    /** The switch's words' tooltip: what showing in the App Center means, and what the switch writes. */
     showInAppCenterHint:
-      "在应用中心显示这个工作台的快捷入口；会改写它的 package.json，并记为一个版本。",
-    /** The words beside the row's switch, which flip it too. */
-    appCenterLabel: "应用中心",
+      "打开后，这个工作台会作为一个应用出现在「应用中心」页面：Project 的每个成员都能在那里看到它的图标，点一下即可打开使用，不必先进入对话。关闭只是把入口从应用中心撤下，工作台本身、它的数据与历史版本都不受影响。拨动开关会改写工作台 package.json 中的 penguin.appCenter.show，并记为一个版本。",
     /** The row's text button: opens the workbench beside a new chat. */
     openAction: "打开",
     /** The row's "⋯" button, which holds its other actions. */
@@ -1356,7 +1363,7 @@ export const zh = {
     loading: "加载中…",
     emptyTitle: "应用中心还是空的",
     empty:
-      "Workbench 是由 Agent 托管、嵌在对话旁的页面，也可以整页打开。Agent 创建 Workbench，并在 Agent 设置的工作台行打开「应用中心」开关后，它就会出现在这里。",
+      "Workbench 是由 Agent 托管、嵌在对话旁的页面，也可以整页打开。Agent 创建 Workbench，并在 Agent 设置的工作台行打开「展示到应用中心」开关后，它就会出现在这里。",
     /** A tile whose current files failed to load: it still opens, and its menu shows the error. */
     broken: "加载失败",
     /** A tile whose app is still being built: it opens once the build is done. */
@@ -1692,6 +1699,44 @@ export const zh = {
     documentPlaceholder: "在文档中查找…",
   },
 
+  /**
+   * The date and time pickers' own words (the shared UI package's DateField, TimeField,
+   * DateTimeField and DateRangeField), handed to it by lib/ui-strings.ts. `locale` is what the
+   * pickers write dates and times in and whose week and clock they follow.
+   */
+  datePicker: {
+    locale: "zh-CN",
+    pickDate: "选择日期",
+    pickTime: "选择时间",
+    pickDateTime: "选择日期和时间",
+    pickRange: "选择日期范围",
+    /** A field's accessible name: its title with what it shows. */
+    fieldName: (label: string, shown: string): string => `${label}：${shown}`,
+    today: "今天",
+    clear: "清除",
+    previousMonth: "上个月",
+    nextMonth: "下个月",
+    month: "月份",
+    year: "年份",
+    hour: "小时",
+    minute: "分钟",
+    dayPeriod: "上午/下午",
+    /** The row under a date-and-time calendar, whose pill opens the time wheels. */
+    time: "时间",
+    /** Read out once a range's first end is picked. */
+    pickEnd: "请选择结束日期",
+    /** A range headline's two ends while they are not picked. */
+    startDate: "开始日期",
+    endDate: "结束日期",
+    /** A range picker's two actions: nothing is written until the second. */
+    cancel: "取消",
+    confirm: "确定",
+    /** What joins a span's two dates (2026年11月1日-2026年11月16日). */
+    rangeSeparator: "-",
+    /** Closes a time or date-and-time picker, whose panel stays open while it is used. */
+    done: "完成",
+  },
+
   common: {
     save: "保存",
     cancel: "取消",
@@ -2024,7 +2069,7 @@ export const zh = {
     createPluginsPlaceholder: "未选择插件",
     createPluginsPicked: (n: number): string => `已选 ${n} 个插件`,
     createPluginsHint:
-      "创建时安装到该 Agent（技能、钩子包与 MCP 服务器），之后可在其「技能」「钩子」「工具」标签页增删",
+      "创建时安装到该 Agent（技能、钩子包、MCP 服务器与工作台），之后可在其设置的「插件」里增删",
     createPluginsEmpty: "插件库暂无可安装的插件",
     /** Where the new Agent is created (shown once a machine is connected), and its "?". */
     createLocation: "位置",
@@ -2260,7 +2305,7 @@ export const zh = {
     mcpInstalledBy: (plugin: string): string => `由插件 ${plugin} 安装`,
     mcpFromPlugin: (plugin: string): string => `来自插件 ${plugin}：重新安装该插件会覆盖此条目。`,
     mcpRemoveFromPlugin: (plugin: string): string =>
-      `它由插件 ${plugin} 安装，可在插件页的「管理安装」中重新装回。`,
+      `它由插件 ${plugin} 安装，可在这个 Agent 的「插件」里重新装回。`,
     defaultValue: "（缺省）",
     /** Reset link next to the runtime dropdowns: rewinds the local pick back to "not overridden" (the menus offer no inherit row). */
     /** The hint on a machine Agent's `[SSH: …]` tag: whose Agent this is, and where its actions go. */
@@ -2327,8 +2372,6 @@ export const zh = {
     exportTracesLast: "最近 N 条",
     exportTracesRange: "日期范围",
     exportTracesCount: "对话条数",
-    exportTracesFrom: "起始日期",
-    exportTracesTo: "结束日期",
     exportVaultNote: "保险柜从不进包；配置里直接写的字面值会原样带出。",
     exportAction: "导出",
     exporting: "导出中…",
@@ -3441,7 +3484,7 @@ export const zh = {
     detailDescription: "说明",
     detailFiles: "文件",
     detailSkills: "技能",
-    detailWorkbenches: "Workbenches",
+    detailWorkbenches: "工作台",
     uninstallWorkbenchRecords: "其工作台及保存的记录也会被删除。",
     detailHooks: "钩子",
     /** The detail dialog's section of the MCP servers a plugin installs into an Agent's tools. */
@@ -3454,6 +3497,11 @@ export const zh = {
     /** The tag of a plugin an admin installed on this server (not shipped with the build). */
     installedOnServer: "服务端安装",
     installedOnServerHint: "管理员安装到本服务端的包，不随构建自带。",
+    /** The tag of a plugin linked in from a local directory (penguin plugin link). */
+    linkedTag: "链接",
+    linkedHint: (dir: string) => `链接的本机目录：${dir}。改动目录后下一次装载即生效。`,
+    /** The detail line naming the directory a link points at. */
+    linkedDirectory: "链接目录",
     /** The detail dialog's export (any member) and delete (admin, a package installed on the server). */
     exportPlugin: "导出",
     exportPluginHint: "下载插件包的 zip，可在另一台服务端的「导入插件」中原样导入",
@@ -3587,42 +3635,52 @@ export const zh = {
 
   /** The Agent settings "Plugins" tab (features/agents/plugins-tab.tsx): the Agent's plugins and the parts each brought, the Agent's own parts last. */
   agentPlugins: {
-    tabDesc:
-      "这个 Agent 装了哪些插件，以及每个插件带来的技能、钩子、MCP 服务器和工作台。卸载插件会一次删掉它的全部部件。你自己创建或导入的部件列在最后。",
-    /** Appended to the description for a member. */
-    readOnlyHint: "开关、技能提示词和卸载插件只有 Project 所有者可以操作。",
-    importAction: "导入",
-    importMenu: "导入什么",
-    importSkill: "技能",
-    importHook: "钩子包",
-    importWorkbench: "工作台",
-    importChatOrZip: "上传 zip，或在对话中让 Agent 导入",
-    browseLibrary: "浏览插件库",
-    installedTitle: "已装插件",
-    empty: "这个 Agent 还没有装插件。点「浏览插件库」挑一个装上。",
-    ownTitle: "不属于插件",
-    /** What a plugin brought to this Agent, beside its name: "3 个技能、钩子、1 个工作台". */
-    partSummary: (skills: number, hooks: boolean, mcp: number, workbenches: number): string =>
-      [
-        skills > 0 ? `${skills} 个技能` : "",
-        hooks ? "钩子" : "",
-        mcp > 0 ? `${mcp} 个 MCP 服务器` : "",
-        workbenches > 0 ? `${workbenches} 个工作台` : "",
-      ]
-        .filter((part) => part !== "")
-        .join("、"),
+    /** The Plugins tab's sub-page switch: its accessible name, and each sub-page's label. */
+    subNav: "插件的子页面",
+    subPages: {
+      plugins: "插件",
+      skills: "技能",
+      hooks: "钩子",
+      workbenches: "工作台",
+    },
+    /** Each sub-page's fold: what it holds and what its actions do. */
+    desc: {
+      plugins:
+        "这个 Agent 装了哪些插件，以及插件库里还能给它装哪些。安装会把插件的技能、钩子包、MCP 服务器和工作台写进这个 Agent，卸载会一次删掉它们。",
+      skills:
+        "这个 Agent 的全部技能，插件装进来的和你自己创建或导入的都在这里。元数据进入系统提示词，正文由模型按需读取。卸载会删除整个技能目录。",
+      hooks:
+        "这个 Agent 的全部钩子包：harness 在循环的钩子点运行的脚本，例如每个 Task 结束后。卸载会删除整个钩子包目录。",
+      workbenches:
+        "这个 Agent 的全部工作台。可以打开、重新加载、查看历史版本、导出或移除，也可以只关掉它而保留数据。「展示到应用中心」把工作台作为应用放到应用中心页面。",
+    },
+    /** The fold's second paragraph for a member: what only the owner can do on that sub-page. */
+    readOnly: {
+      plugins: "卸载插件只有 Project 所有者可以操作。",
+      skills: "「启用技能」和技能提示词只有 Project 所有者可以修改。",
+      hooks: "「启用钩子」只有 Project 所有者可以修改。",
+      workbenches: "「启用工作台」和每个工作台的开关只有 Project 所有者可以修改。",
+    },
+    openMarket: "打开插件市场",
+    /** The Plugins sub-page's two sections. */
+    installedSection: "已安装",
+    availableSection: "可安装",
+    installedEmpty: "这个 Agent 还没有装插件。",
+    libraryEmpty: "插件库里还没有可以装到 Agent 上的插件。",
     /** A plugin's status on this Agent, and what it means on hover. */
     status: {
       installed: "已安装",
       update: "可更新",
       incomplete: "不完整",
       "not-in-library": "不在插件库",
+      available: "可安装",
     },
     statusHint: {
       installed: "这个插件的部件都在。",
       update: "插件库里有更新的版本。点「更新」换成新版本。",
       incomplete: "这个插件少了一些部件。点「更新」把它们装回来。",
       "not-in-library": "管理员已把这个插件从插件库中删除，所以无法更新。",
+      available: "这个 Agent 还没有装这个插件。",
     },
     /** The parts the uninstall confirmation lists, one per line. */
     partSkill: (name: string) => `技能：${name}`,
@@ -3638,13 +3696,35 @@ export const zh = {
     uninstallPartly: (plugin: string, failed: string) =>
       `${plugin} 已卸载，但这些部件没能删除：${failed}`,
     updatedToast: (plugin: string, agent: string) => `已在 ${agent} 上更新 ${plugin}`,
-    /** An MCP server row: what keeps it from connecting, and where it is edited. */
-    mcpNeedsSetup: "待设置",
-    mcpNeedsSignIn: "需登录",
-    mcpEdit: "去「工具」编辑",
+    /** A plugin's detail: what of it is on this Agent, by kind, and where each kind is managed. */
+    onAgentTitle: "在这个 Agent 上",
+    partKinds: {
+      skills: "技能",
+      hooks: "钩子包",
+      mcpServers: "MCP 服务器",
+      workbenches: "工作台",
+    },
+    managePart: {
+      skills: "去「技能」管理",
+      hooks: "去「钩子」管理",
+      workbenches: "去「工作台」管理",
+      mcpServers: "去「工具」编辑",
+    },
+    /** A part the library ships and the Agent lacks. */
+    missingPart: "缺失",
+    missingPartHint: "插件库里的这个部件不在这个 Agent 上。点「更新」把它装回来。",
+    /** The removal of a part a plugin installed: where it can be put back. */
+    partFromPluginNote: (plugin: string) =>
+      `它由插件 ${plugin} 安装，之后可以在「插件」里点「更新」装回。`,
+    /** The puzzle mark after a part's name: its accessible name and tooltip, saying what a press does. */
+    partSource: (plugin: string) => `由插件 ${plugin} 安装，点击在「插件」子页面中定位`,
+    /** Each kind sub-page's list with no row. */
+    skillsEmpty: "这个 Agent 还没有技能。",
+    hooksEmpty: "这个 Agent 还没有钩子包。",
+    workbenchesEmpty: "这个 Agent 还没有工作台。",
   },
 
-  /** An Agent's hook packages on its Plugins tab (features/agents/agent-hooks.tsx): the rows, the enable switch, the import modal (chat import / zip upload) and the export. The hook-point chips carry the bare point name (`stop`, `user_prompt`) and need no string. */
+  /** An Agent's hook packages on its Plugins tab's Hooks sub-page (features/agents/agent-hooks.tsx): the rows, the enable switch, the import modal (chat import / zip upload) and the export. The hook-point chips carry the bare point name (`stop`, `user_prompt`) and need no string. */
   hooks: {
     /** The agents page's hook-count stat (hover title / accessible name). */
     hookCount: (n: number): string => `${n} 个钩子包`,
@@ -3737,7 +3817,7 @@ export const zh = {
     uninstallConfirmTitle: (name: string): string => `卸载 ${name}`,
     uninstallConfirmBody: (skill: string, agent: string): string =>
       `确定从 ${agent} 卸载 ${skill} 吗？已安装的技能文件（含本地改动）将被删除。`,
-    /** An Agent's Skills on its Plugins tab (rows + import modal). */
+    /** An Agent's Skills on its Plugins tab's Skills sub-page (rows + import modal). */
     exportSkill: "打包导出",
     importSkill: "导入技能",
     importChatTitle: "推荐：让 Agent 在对话中安装",
@@ -3921,8 +4001,6 @@ export const zh = {
       newFolderPlaceholder: "输入名称，按 Enter 新建",
       /** Accessible name of the × that closes the new-folder row. */
       newFolderCancel: "取消新建文件夹",
-      /** The toolbar's New folder while the folder on screen could not be read. */
-      newFolderDenied: "无法读取此文件夹，不能在这里新建",
       /** Under the new-folder field: a character this machine does not allow in a name. */
       newFolderInvalid: (chars: string): string => `名称不能包含 ${chars}`,
       newFolderHidden: "以「.」开头的是隐藏文件夹，这里不会列出，请换个名称",
@@ -3981,7 +4059,7 @@ export const zh = {
     sortManual: "手动排序",
     sortRecent: "最近更新",
     newWorkspaceEntity: "新建工作区",
-    /** A Workspace group's overflow (… right of the header "+"): browse its files; a registry-backed group adds alias rename + sidebar-only removal. */
+    /** A Workspace group's overflow (… right of the header "+"): every single-directory group can browse its files, be renamed, and be deleted (its active conversations archived). */
     workspaceMenu: "工作区选项",
     renameWorkspace: "重命名工作区",
     renameWorkspaceLabel: "名称",
@@ -3989,8 +4067,16 @@ export const zh = {
     deleteWorkspace: "删除工作区",
     /** A Workspace group's "more" menu: the dock's Files panel on that directory. */
     browseWorkspaceFiles: "打开文件浏览",
-    deleteWorkspaceConfirm: (name: string) =>
-      `确定移除「${name}」？仅从侧边栏移除该工作区分组，不影响磁盘目录与已有会话，可随时重新添加。`,
+    deleteWorkspaceConfirm: (name: string, count: number) =>
+      count > 0
+        ? `删除工作区「${name}」？其中的 ${count} 个对话将被归档，磁盘上的文件不受影响。在「已归档对话」中取消归档任一对话，这个工作区会重新出现。`
+        : `删除工作区「${name}」？它将从侧边栏移除，磁盘上的文件不受影响。`,
+    /** The toast once a delete archived the group's conversations (the server's count). */
+    deleteWorkspaceArchived: (count: number) =>
+      `已归档 ${count} 个对话，可在「已归档对话」中取消归档。`,
+    /** A machine whose build predates the archive route refused the delete. */
+    deleteWorkspaceMachineOutdated: (machine: string) =>
+      `${machine} 上的 PenguinHarness 版本较旧，还不能删除工作区。请先在「机器」页更新它。`,
     tempWorkspaces: "临时工作区",
     /** A name that only means something on another machine, written with the ssh alias that reaches it. */
     onMachine: (name: string, machine: string) => `${name} [SSH: ${machine}]`,
@@ -4459,7 +4545,9 @@ Benchmark：
                             ? "输入无法组成请求"
                             : kind === "failed"
                               ? "模型服务返回错误"
-                              : null,
+                              : kind === "denied"
+                                ? "服务商不为该账号或模型提供服务（余额、权限或模型不存在）"
+                                : null,
       /** A retry whose cause has no words (an unknown code). */
       unknownCause: "原因未知",
       /** Skips the remaining backoff wait. */
@@ -4713,6 +4801,9 @@ Benchmark：
       `当前模型的上下文窗口 ${n} 小于本 Agent 的压缩阈值 ${m}，压缩实际会在窗口边缘触发。拖动上下文面板里的虚线或在 Agent 设置中把阈值调到窗口以下，立即生效。`,
     contextWindowUnderThresholdAction: "打开 Agent 设置",
     contextWindowUnderThresholdDismiss: "忽略",
+    /** Composer notice in the same slot, with the same two buttons: the Session's latest compaction was a refusal hand-off (see composerNotice). */
+    contextRefusedHandoff:
+      "服务商拒绝了上一次请求：留给压缩的空间不足，本对话已改由 Trace 交接说明接续。请在模型配置中更正该模型的上下文窗口，或调低本 Agent 的压缩阈值（可拖动上下文面板里的虚线）。",
     slashHint: "输入 / 使用命令",
     /** `/agent` handoff: command description, picker title, search box, no-match hint, and the staged target's description and remove button. */
     switchAgent: "交给其他 Agent，发送时开启新会话",
@@ -4798,7 +4889,9 @@ Benchmark：
     /** The row's title doubles as its status, the work-group header's idiom (`workRunning` / `workDone`): 压缩中 / 清空中 while the step runs, 压缩完毕 / 清空完毕 once it settles. With mode and state both in the title nothing is left for a detail line on either side — a `summarize` shows its summary in its own expandable body — so only `compactionFailed` keeps the detail slot, carrying the one thing a title cannot. */
     compactionRunning: (mode: string): string => (mode === "discard" ? "清空中" : "压缩中"),
     compactionDone: (mode: string): string => (mode === "discard" ? "清空完毕" : "压缩完毕"),
-    /** The summarize row's second body section (the first reuses `thinking`): the summary the compaction request wrote. */
+    /** The summarize row's middle body section, present when the compaction took tool rounds: the hand-off files it read and wrote, one tool row each. */
+    compactionWork: "工作",
+    /** The summarize row's last body section (the first reuses `thinking`): the summary the compaction request wrote. */
     compactionResult: "压缩结果",
     /** The marker between two contexts on different models (an in-session model switch), naming both by model id. */
     modelChanged: (from: string, to: string): string => `模型已切换 · ${from} → ${to}`,
@@ -4810,12 +4903,23 @@ Benchmark：
       tracePath
         ? `没有摘要：原模型不可用或压缩失败，新模型按需读取此前的 Trace 文件：${tracePath}`
         : "没有摘要：原模型不可用或压缩失败，新模型按需读取此前的 Trace 文件",
+    /** The settled row's status-mark tooltip and accessible name when the compaction completed without a full summary: the title stays 压缩完毕, only the mark says it; carries the end's error message when there is one. */
+    compactionDegradedHint: (errorMessage?: string): string =>
+      errorMessage !== undefined
+        ? `未能生成完整摘要，新上下文改以 Trace 交接说明开头：${errorMessage}`
+        : "未能生成完整摘要，新上下文改以 Trace 交接说明开头",
+    /** The same when too little room was left for the compaction (compactionShortOfRoom): what to correct, then the provider's own words when it refused. */
+    compactionRoomHint: (providerMessage?: string): string =>
+      `留给压缩的空间不足，新上下文改以 Trace 交接说明开头。请更正该模型的上下文窗口，或调低压缩阈值。${
+        providerMessage !== undefined ? `服务商的原话：${providerMessage}` : ""
+      }`,
     compactionFailed: (status: string, errorMessage?: string): string => {
       if (status === "aborted") return "已中断，保留当前上下文";
       const detail = errorMessage !== undefined ? `（${errorMessage}）` : "";
-      // retryable = 本次放弃、下次触发自动重试；fatal = 需先修复模型配置或凭据。旧 Trace 两者都拼作 "failed"。
+      // fatal = the next context could not be opened. Old Traces' abandoned compactions:
+      // retryable = given up this time, retried at the next trigger; legacy "failed" = either.
+      if (status === "fatal") return `失败${detail}，未能开启新的上下文，保留当前上下文`;
       if (status === "retryable") return `失败${detail}，保留当前上下文，下次触发时重试`;
-      if (status === "fatal") return `失败${detail}，保留当前上下文，需修复模型配置后重试`;
       return `失败${detail}，保留当前上下文`;
     },
     unknownTool: "（未知工具）",
@@ -5563,8 +5667,8 @@ Benchmark：
     total: "累计",
     tokens: "Token",
     requests: "Requests",
-    from: "起始日期",
-    to: "结束日期",
+    /** The range picker's name: it has no visible title in the header's row of filters. */
+    rangeDates: "起止日期",
     colCacheRead: "缓存命中",
     colCacheWrite: "缓存未命中",
     colOutput: "输出",
@@ -6997,7 +7101,7 @@ Benchmark：
       machine_not_found: "这台机器不在当前 Project 的机器列表中。",
       machine_outdated: "这台机器上的版本较旧，请在「机器管理」更新它。",
       plugin_not_installed: "这个 Agent 上已经没有这个插件的任何部件。",
-      workbench_disabled: "这个工作台已关闭。可以在 Agent 设置的「插件」里打开它。",
+      workbench_disabled: "这个工作台已关闭。可以在 Agent 设置的「插件 › 工作台」里打开它。",
       machine_answered: "机器给出的应答无法使用，请重试。",
       trace_changed: "读取期间这个对话的 Trace 一再变化，请重试。",
       internal: "服务器内部错误，请稍后重试。",

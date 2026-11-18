@@ -27,6 +27,7 @@ export * from "./components/icons/logos/penguin-logo";
 export * from "./components/icons/avatars/avatar";
 export * from "./components/icons/avatars/agent-avatar";
 export * from "./components/icons/avatars/agent-palette";
+export * from "./components/icons/avatars/agent-accessory";
 export { AGENT_AVATAR_VARIANT_NAMES } from "./components/icons/avatars/agent-avatar-variants";
 export type { AgentAvatarVariant } from "./components/icons/avatars/agent-avatar-variants";
 export * from "./components/icons/avatars/user-avatar";
@@ -141,6 +142,7 @@ export * from "./components/content/prose/markdown-plugins";
 export * from "./components/content/prose/site-markdown-plugins";
 export * from "./components/content/code-block/code-block";
 export * from "./components/content/code-block/code-languages";
+export * from "./components/content/code-block/code-place";
 export * from "./components/content/typography/typography";
 export * from "./components/content/clamped-text/clamped-text";
 export * from "./components/content/diff-viewer/diff-viewer";
@@ -302,6 +304,9 @@ export * from "./components/shell/dock-frame/dock-frame";
 export * from "./components/shell/dock-picker/dock-picker";
 export * from "./components/shell/panels-toolbar/panels-toolbar";
 export * from "./components/shell/launcher/launcher";
+// The floating ball built on the launcher's ball: drags to an edge and tucks away there.
+export * from "./components/shell/floating-ball/floating-ball";
+export * from "./components/shell/floating-ball/floating-ball-geometry";
 
 // W7-B — the shell: the app window and its columns, the folded rail, the phone's top bar, the
 // pinned sidebar's frame with its nav fold, list header and controls, and the conversation row
@@ -343,3 +348,30 @@ export * from "./components/layout/measure/use-measured-width";
 // which the Workspace Files panel and the organization handbook both lay out with.
 export * from "./components/files/files-frame/files-layout";
 export * from "./components/files/files-frame/files-frame";
+
+// Things in a catalogue and on an Agent — the Plugins page and an Agent's plugin sub-pages: the
+// card a thing wears in a grid with its controls and the grid it sits in, the facts line, the
+// status as a glyph and a word, the flat glyph that acts, a detail section's one-line rows, and
+// the sub-page switch under a tab.
+export * from "./components/data/entity-card/entity-card";
+export * from "./components/data/meta-line/meta-line";
+export * from "./components/feedback/status-mark/status-mark";
+export * from "./components/actions/glyph-action/glyph-action";
+export * from "./components/data/fact-row/fact-row";
+export * from "./components/navigation/sub-page-bar/sub-page-bar";
+
+// Dates and times: the date, time, date-and-time and date-range fields, pickers after iOS's that
+// write the native inputs' formats (`YYYY-MM-DD`, `HH:mm`, `YYYY-MM-DDTHH:mm`).
+export { DateField } from "./components/forms/date-time/date-field";
+export type { DateFieldProps } from "./components/forms/date-time/date-field";
+export { TimeField } from "./components/forms/date-time/time-field";
+export type { ClockProps, TimeFieldProps } from "./components/forms/date-time/time-field";
+export { DateTimeField } from "./components/forms/date-time/date-time-field";
+export type { DateTimeFieldProps } from "./components/forms/date-time/date-time-field";
+export { DateRangeField } from "./components/forms/date-time/date-range-field";
+export type {
+  DateRangeFieldProps,
+  DateRangeValue,
+} from "./components/forms/date-time/date-range-field";
+export type { PickerFieldProps } from "./components/forms/date-time/picker-trigger";
+export type { HourCycle } from "./components/forms/date-time/date-locale";

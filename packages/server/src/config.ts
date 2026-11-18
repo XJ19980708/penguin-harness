@@ -11,7 +11,6 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { NIGHTLY_INDEX_URL } from "./plugin/registry.js";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_SERVER_PORT, resolveRoot } from "@prismshadow/penguin-core";
 import { PENGUIN_GO_BASE_URL } from "./model-catalog/catalog.js";
@@ -29,6 +28,15 @@ export interface ServerConfig {
    * than the browser's (dev serves the SPA on a different port; see resolvePreviewTarget).
    */
   port: number;
+  /**
+   * Port the first-login link points at instead of `port` (PENGUIN_DEV_APP_PORT). `pnpm dev`
+   * sets it to Vite's 7365: there the App is served by Vite, while this server only answers
+   * the API, so a link on this server's own port lands on a page that does not exist. Only
+   * that link uses it — previews and the Agents' API URL must keep reaching this server.
+   *
+   * OPTIONAL like cliEntry, and left out of HMR_INTERFACES: only index.ts reads it.
+   */
+  devAppPort?: number;
   /** SQLite database path; ":memory:" for test injection. */
   dbPath: string;
   /** Frontend static assets directory; whether it's enabled is decided by checking existence when the app is assembled. */
@@ -130,17 +138,6 @@ export interface ServerConfig {
    * to report.
    */
   cliLaunch?: Omit<CliLaunch, "entry">;
-  /**
-   * The published plugin index this deployment reads (PENGUIN_PLUGIN_INDEX), or null
-   * for none. Unset = the index repository's published document; `off` = builtin entries only
-   * and no outbound request, the same opt-out shape PENGUIN_UPDATE_CHECK=off gives the version
-   * check; any other value replaces the URL, which is what a fork or a private index needs.
-   *
-   * OPTIONAL because the config a RUNTIME publishes is whatever its own build knew: a runtime
-   * older than this field carries none, and a pushed platform still has to boot on it. Absent
-   * therefore reads as unset — the published index — while an explicit null is the opt-out.
-   */
-  pluginIndexUrl?: string | null;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -252,14 +249,7 @@ export function normalizeModelScopeBridgeUrl(raw: string | undefined): string {
   return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
 }
 
-/** PENGUIN_PLUGIN_INDEX -> the URL to read, or null when the lookup is off. */
-function resolvePluginIndexUrl(raw: string | undefined): string | null {
-  const value = raw?.trim();
-  if (value === undefined || value === "") return NIGHTLY_INDEX_URL;
-  return value.toLowerCase() === "off" ? null : value;
-}
-
-/** Parses server config from environment variables (PORT / HOST / PENGUIN_HOME / PENGUIN_WEB_DIST / PENGUIN_WEB_DB / PENGUIN_PREVIEW_ORIGIN / PENGUIN_GO_ORIGIN / MODELSCOPE_BRIDGE_URL / PENGUIN_SEED_ADMIN_PASSWORD / PENGUIN_DESKTOP_TOKEN / PENGUIN_PORT_FILE / PENGUIN_TRUST_PROXY / PENGUIN_CLI_ENTRY / PENGUIN_PLUGIN_INDEX). */
+/** Parses server config from environment variables (PORT / PENGUIN_DEV_APP_PORT / HOST / PENGUIN_HOME / PENGUIN_WEB_DIST / PENGUIN_WEB_DB / PENGUIN_PREVIEW_ORIGIN / PENGUIN_GO_ORIGIN / MODELSCOPE_BRIDGE_URL / PENGUIN_SEED_ADMIN_PASSWORD / PENGUIN_DESKTOP_TOKEN / PENGUIN_PORT_FILE / PENGUIN_TRUST_PROXY / PENGUIN_CLI_ENTRY). */
 export function resolveServerConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const root = env.PENGUIN_HOME ?? resolveRoot();
   // An empty PORT string is treated as unset (the common `.env` case of an empty
@@ -268,6 +258,14 @@ export function resolveServerConfig(env: NodeJS.ProcessEnv = process.env): Serve
   const port = Number(env.PORT || DEFAULT_SERVER_PORT);
   if (!Number.isInteger(port) || port < 0 || port > 65535) {
     throw new Error(`Invalid port configuration PORT=${env.PORT}`);
+  }
+  // Same reading as PORT, except that 0 means nothing here: a link needs a real port.
+  const devAppPort = env.PENGUIN_DEV_APP_PORT ? Number(env.PENGUIN_DEV_APP_PORT) : undefined;
+  if (
+    devAppPort !== undefined &&
+    (!Number.isInteger(devAppPort) || devAppPort < 1 || devAppPort > 65535)
+  ) {
+    throw new Error(`Invalid port configuration PENGUIN_DEV_APP_PORT=${env.PENGUIN_DEV_APP_PORT}`);
   }
   const host = env.HOST ?? "127.0.0.1";
   const desktopToken = env.PENGUIN_DESKTOP_TOKEN?.trim() || null;
@@ -280,6 +278,7 @@ export function resolveServerConfig(env: NodeJS.ProcessEnv = process.env): Serve
     root,
     host,
     port,
+    ...(devAppPort !== undefined ? { devAppPort } : {}),
     dbPath: env.PENGUIN_WEB_DB ?? path.join(root, "web.db"),
     webDist: env.PENGUIN_WEB_DIST ?? defaultWebDist(),
     previewOrigin: normalizePreviewOrigin(env.PENGUIN_PREVIEW_ORIGIN),
@@ -299,6 +298,5 @@ export function resolveServerConfig(env: NodeJS.ProcessEnv = process.env): Serve
       origin: cli.origin,
       unavailable: cli.unavailable,
     },
-    pluginIndexUrl: resolvePluginIndexUrl(env.PENGUIN_PLUGIN_INDEX),
   };
 }

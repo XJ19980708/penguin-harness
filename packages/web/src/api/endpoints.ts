@@ -201,6 +201,8 @@ import type {
   SessionsResponse,
   SessionSwitchModelRequest,
   SessionBatchPageRequest,
+  SessionsArchiveRequest,
+  SessionsArchiveResponse,
   SessionsBatchRequest,
   SessionsBatchResponse,
   SessionTracesResponse,
@@ -956,6 +958,24 @@ export const batchSessions = (
     body: { requests } satisfies SessionsBatchRequest,
     server: machineId,
   });
+
+/**
+ * Archives every active conversation of one Workspace group (its path, or `temp`) on the server
+ * that holds it — the sidebar's "delete workspace", loaded rows or not, in one request.
+ */
+export const archiveWorkspaceSessions = (
+  projectId: string,
+  workspaceGroup: string,
+  machineId: string | null,
+) =>
+  apiFetch<SessionsArchiveResponse>(
+    `/api/projects/${encodeURIComponent(projectId)}/sessions/archive`,
+    {
+      method: "POST",
+      body: { workspaceGroup } satisfies SessionsArchiveRequest,
+      server: machineId,
+    },
+  );
 
 /** Server directory browsing: `path` is an absolute path; empty means start from the server's home directory. */
 /**
@@ -1909,13 +1929,23 @@ const installedOn = <T extends { skills: SkillMetadataItem[]; hooks: HookItem[] 
   machineId: string | null,
 ): T => ({ ...r, skills: iconsOn(r.skills, machineId), hooks: iconsOn(r.hooks, machineId) });
 
-/** Everything one library plugin ships as text keyed by path (skills' files, hook scripts), for the plugin detail view's file browser. */
-export const getPluginFiles = (plugin: string) =>
-  apiFetch<PluginFilesResponse>(`/api/plugins/${encodeURIComponent(plugin)}/files`);
+/**
+ * Everything one library plugin ships as text keyed by path (skills' files, hook scripts), for the
+ * plugin detail view's file browser; with `machineId`, from THAT machine's library.
+ */
+export const getPluginFiles = (plugin: string, machineId: string | null = null) =>
+  apiFetch<PluginFilesResponse>(`/api/plugins/${encodeURIComponent(plugin)}/files`, {
+    server: machineId,
+  });
 
-/** A library plugin's README.md, from its package root, for the detail dialog; 404 when the package ships none. */
-export const getLibraryPluginReadme = (plugin: string) =>
-  apiFetch<PluginReadmeResponse>(`/api/plugins/${encodeURIComponent(plugin)}/readme`);
+/**
+ * A library plugin's README.md, from its package root, for the detail dialog; 404 when the
+ * package ships none. With `machineId`, from THAT machine's library.
+ */
+export const getLibraryPluginReadme = (plugin: string, machineId: string | null = null) =>
+  apiFetch<PluginReadmeResponse>(`/api/plugins/${encodeURIComponent(plugin)}/readme`, {
+    server: machineId,
+  });
 
 /**
  * Installs whole library plugins — each one's skills and hook package; an already-installed
@@ -2851,6 +2881,10 @@ export const openPrivacySettings = (pane: DesktopPrivacyPane) =>
     body: { pane },
     server: null,
   });
+
+/** Has the desktop shell open another window of the app (the command palette's New Window). */
+export const openDesktopWindow = () =>
+  apiFetch<void>("/api/desktop/window", { method: "POST", body: {}, server: null });
 
 // ---- Workbenches (an Agent's own extension packages, served as tabs beside the chat) ----
 const workbenchesBase = (projectId: string, agentId: string) =>

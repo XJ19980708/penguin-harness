@@ -38,7 +38,7 @@
  * |                    | code block, `Card`, a framed `Table`                     |                                                       |
  * | `ui-underline-nav` | the selected-tab marker of a tab bar (a page's tabs, a   | items `[role="tab"]`, selected by `aria-selected="true"` |
  * |                    | dock's tab strip)                                        |                                                       |
- * | `ui-shell`         | the app window: a navigation column beside a main column | children carry `data-slot="nav" \| "main"` (a right column may carry `"dock"`); the selected nav row is `[aria-current="page"]`; in a desktop window the shell carries `data-window-band` and an absolutely placed `data-slot="band"` child holds the title band (window-band.css frames the main column as a card then) |
+ * | `ui-shell`         | the app window: a navigation column beside a main column | children carry `data-slot="nav" \| "main"` (a right column may carry `"dock"`); the selected nav row is `[aria-current="page"]`; in a desktop window the shell carries `data-window-band` and an absolutely placed `data-slot="band"` child holds the title band, in the nav colour (window-band.css) |
  * |                    | host: `AppShell`                                         |                                                       |
  * | `ui-icon-decor`    | an icon that says nothing its label does not already say | on the icon itself (or the element holding only it); optional `data-role="nav" \| "group" \| "menu" \| "empty"` |
  * |                    | hosts: the icon renderers' call sites, `NavRow`'s glyph  |                                                       |
@@ -67,7 +67,7 @@
  * |                    | trigger, a checkbox's box, a radio's disc, a switch's    |                                                       |
  * |                    | track, the start page's pickers and the person's own     |                                                       |
  * |                    | message bubble; hosts: `Button`, `Input`, `Textarea`,    |                                                       |
- * |                    | `Select`, `OptionMenu`, `SearchInput`,                   |                                                       |
+ * |                    | `Select`, `OptionMenu`, `SearchInput`, `PickerTrigger`,  |                                                       |
  * |                    | `FormPickerTrigger`, `Checkbox`, `CheckboxBox`, `Radio`, |                                                       |
  * |                    | `RadioDisc`, `Switch`, `MessageBubble`, `AgentSelect`,   |                                                       |
  * |                    | `WorkspaceSelect`                                        |                                                       |
@@ -285,13 +285,14 @@
  * rules, so a recipe or a utility that fills the mark otherwise still has the mark's colour to
  * outline it in.
  *
- * `ui-avatar` (2026-11-04) is an Agent's default avatar, the smiling ball penguin, drawn once per
+ * `ui-avatar` (2026-11-04) is an Agent's default avatar, a small kawaii penguin, drawn once per
  * theme's language like a glyph: the foundation shows the `flat` drawing and hides the rest, the
  * base (Frost, and Doodle on it) swaps in `soft` and Console `pixel`, and Primer — and any pack
- * with no drawing of its own — keeps `flat`. Every drawing paints the Agent's palette slot, from
- * its id, and the same smiling face, so only the drawing changes with the theme. An Agent with a
- * picture of its own (2026-11-07) is that picture, an `<img>` host with no drawings, in the flat
- * tile's rounded square: a pack that treats the avatar's box treats both alike.
+ * with no drawing of its own — keeps `flat`. Every drawing paints the Agent's palette slot and
+ * wears the Agent's accessory, both from its id, on the same face, so only the drawing changes
+ * with the theme. An Agent with a picture of its own (2026-11-07) is that picture, an `<img>` host
+ * with no drawings, in the flat tile's rounded square: a pack that treats the avatar's box treats
+ * both alike.
  */
 export const HOOKS = [
   "ui-glass",

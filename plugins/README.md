@@ -9,7 +9,7 @@ Included plugins, by category (`PLUGIN_CATEGORIES` in `packages/core/src/plugin/
 | Category | Plugins |
 | --- | --- |
 | Agent Self-Evolution | `default-rsi-toolkit`, `opro-rsi-toolkit`, `ape-rsi-toolkit`, `ace-rsi-toolkit`, `awm-rsi-toolkit`, `skilladam-rsi-toolkit`, `skillopt-rsi-toolkit`, `openskill-rsi-toolkit`, `trace-rsi-toolkit`, `rrsi-rsi-toolkit` |
-| Office Productivity | `a2ui`, `data-analysis`, `use-firecrawl`, `browser-automation`, `use-bento-slides`, `humanizer`, `goal`, `continual-learning`, `agent-company`, `penguin-support` |
+| Office Productivity | `a2ui`, `data-analysis`, `use-firecrawl`, `browser-automation`, `use-bento-slides`, `humanizer`, `goal`, `continual-learning`, `trace-lookup`, `agent-company`, `penguin-support` |
 | Software Development | `software-development`, `use-claude-code` |
 | AI App Development | `agent-development`, `agent-evaluation`, `model-development`, `skill-porting` |
 
@@ -21,7 +21,9 @@ The four `sandbox-*` packages are not library content but server modules: Agent 
 
 `browser-automation` drives the agent browser through `penguin browser` — the desktop app's built-in browser, or the user's own Chrome through the PenguinHarness Browser extension: GenericAgent's scan → act → check loop over simplified HTML, trusted clicks and typing, and the user's own sign-ins, with Amazon orders as the worked example.
 
-`agent-development` is building on PenguinHarness itself: `agent-initialization` sets an agent up from a requirement, `penguin-sdk` connects a program to an agent (embedded with the SDK or over the Agent API), `penguin-plugin` builds the workbenches an agent keeps beside its chat, `unified-llm-api` calls any model through one API, and `penguin-config` and `penguin-orchestration` drive settings, agents, Sessions, costs and schedules from the shell.
+`trace-lookup` teaches an Agent to read its own Trace files: where a Session's files are, and how to search one for the lines a detail sits on and read only those, for when a `[context_summary]` or `[model_switch_from]` block names the Trace of the context it continues from.
+
+`agent-development` is building on PenguinHarness itself: `agent-initialization` sets an agent up from a requirement, `penguin-sdk` connects a program to an agent (embedded with the SDK or over the Agent API), `penguin-plugin` builds the workbenches an agent keeps beside its chat and covers building, testing, sharing and submitting a plugin package, `unified-llm-api` calls any model through one API, and `penguin-config` and `penguin-orchestration` drive settings, agents, Sessions, costs and schedules from the shell.
 
 `default-rsi-toolkit`, the Default RSI Toolkit (RSI: recursive self-improvement), is the trial → reflect → improve loop in one Skill, `agent-optimization`: it improves the Target Agent to version N+1 from measured Benchmark results, with a snapshot before every round. The loop's other steps sit with their audience: creating the Target Agent is `agent-development`'s `agent-initialization`, and designing a Benchmark (`benchmark-design`) and running and scoring its cases (`agent-evaluation`) are the `agent-evaluation` plugin, Agent Evaluation, which the loop measures through. All four were previously published together as `agent-tuning`; the Skills kept their names, and only `agent-initialization`, whose text changed, a new version.
 

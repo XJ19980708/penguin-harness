@@ -9,6 +9,28 @@ import type { ReleaseNote } from "./release-notes";
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
+    // A local build: upstream 0.2.18 plus the 2026-11-17 through 2026-11-19 batches and the
+    // Windows first-launch rename fix. Its version compares equal to 0.2.18 (the pre-release
+    // suffix is ignored) and it sits first, so the dialog shows it as the newest note while
+    // 0.2.18 keeps the running-version pill.
+    version: "0.2.18-local.4",
+    date: "2026-11-19",
+    zh: [
+      "提示词缓存按会话路由：支持缓存的服务商更省钱、响应更快；工具调用的数字与格式在流式和历史回放中保持原样。",
+      "命令面板可以打开第二个窗口；长对话压缩用文件交接上下文；Workspace 分组能改名和删除；退出全屏工作台有悬浮球。",
+      "插件索引支持多个来源，每个来源可配 CDN 镜像；Agent 插件页拆成四个子页；默认头像换成戴配饰的小企鹅。",
+      "侧边栏会话标题用满宽度，悬停才显示活动时间、头像与行操作；工作区文件夹悬停显示新对话与更多操作，触屏长按可打开菜单。",
+      "修复首启被杀毒软件按住文件导致的崩溃：技能安装、基准写入、配置保存都会自动重试；另修复大文件卡死界面、删除会话不停子 Agent 等一批问题。",
+    ],
+    en: [
+      "Prompt caching routes per conversation: providers that support it get cheaper and faster, and tool-call numbers and formatting stay faithful in streaming and history replay.",
+      "The command palette opens a second window; a long conversation's compaction hands its context over as a file; workspace groups rename and delete; leaving a full-screen workbench has a floating ball.",
+      "The plugin index takes several sources, each with its own CDN mirror; an agent's plugin page splits into four sub-pages; the default avatar is a little penguin wearing accessories.",
+      "Sidebar conversation titles use the full width and reveal the activity time, avatar and row actions on hover; workspace folders show new-chat and more actions on hover, and a long press opens the menu on touch.",
+      "First launch no longer crashes when antivirus software holds a fresh file: skill installs, benchmark writes and config saves all retry on their own; large files no longer freeze the interface, and deleting a conversation stops its sub-agents.",
+    ],
+  },
+  {
     // A local build: upstream 0.2.18 plus the 2026-11-11/11-12 batches. Its version compares
     // equal to 0.2.18 (the pre-release suffix is ignored) and it sits first, so the dialog shows
     // it as the newest note while 0.2.18 keeps the running-version pill.

@@ -9,6 +9,28 @@ import type { ReleaseNote } from "./release-notes";
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
+    // A local build: upstream 0.2.18 plus the 2026-11-19 batch (Plan mode, the library domain
+    // packages, Doodle 2.0, …) and the memsearch long-term-memory plugin. Its version compares
+    // equal to 0.2.18 (the pre-release suffix is ignored) and it sits first, so the dialog shows
+    // it as the newest note while 0.2.18 keeps the running-version pill.
+    version: "0.2.18-local.5",
+    date: "2026-11-20",
+    zh: [
+      "输入框新增「计划」模式开关：先让 Agent 拟好方案、你确认后再动手执行。",
+      "Doodle 主题升级到 2.0：钢笔、马克笔、草地、蜡笔、葡萄五种手绘材质，切页有过渡动画，卡片圆角与悬停底色更柔和。",
+      "Runtime 页可以直接编辑长对话压缩的轮次、提醒与交接说明；压缩被服务商拒绝时会写明原因；工作台可开一个禁用全部工具的纯对话 Session。",
+      "浏览器导入经扩展读取 Chrome Cookie，每条跳过的 Cookie 都给出原因；对话框、表单与页面里的失败处处提供「[报告问题]」入口。",
+      "新增 memsearch 长期记忆插件（本地向量检索）；App Center 列出项目内各机器上的应用；修复 Windows 下 penguin 命令无法从控制台输入的问题；成本中心单独统计隔离请求的成功率。",
+    ],
+    en: [
+      "The composer gains a Plan toggle: the agent drafts a plan first and only executes after you confirm it.",
+      "Doodle 2.0: five hand-drawn materials (ink, marker, grass, crayon, grape), page-transition animations, and softer card corners and hover fills.",
+      "The Runtime page edits a compaction's rounds, reminders and handoff notes inline; a provider's compaction refusal states its reason; a workbench can open a chat-only session with every tool denied.",
+      "Browser import reads Chrome cookies through the extension and explains every skipped cookie; failures in dialogs, forms and pages all offer a [Report issue] link.",
+      "New memsearch long-term-memory plugin (local vector recall); the App Center lists apps across the project's machines; the penguin command reads console input on Windows again; the cost center tracks isolated-request success separately.",
+    ],
+  },
+  {
     // A local build: upstream 0.2.18 plus the 2026-11-17 through 2026-11-19 batches and the
     // Windows first-launch rename fix. Its version compares equal to 0.2.18 (the pre-release
     // suffix is ignored) and it sits first, so the dialog shows it as the newest note while

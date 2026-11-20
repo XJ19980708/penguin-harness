@@ -1,0 +1,38 @@
+{
+  "name": "@penguinharness/memsearch",
+  "version": "0.2.18",
+  "description": "MemSearch: long-term memory for the agent — a stop hook condenses each finished task into a daily markdown journal (via a background subagent) and indexes it with the memsearch CLI, a user_prompt hook advertises recall, and the memory-recall skill searches past sessions semantically.",
+  "keywords": [
+    "penguin-plugin",
+    "penguinharness",
+    "hooks",
+    "skills",
+    "memory"
+  ],
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Prism-Shadow",
+    "url": "https://github.com/Prism-Shadow"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Prism-Shadow/penguin-harness.git",
+    "directory": "plugins/memsearch"
+  },
+  "files": [
+    "icon.svg",
+    "skills",
+    "hooks",
+    "ifaces.json",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node ../../scripts/gen-ifaces.mjs --project tsconfig.json --out ifaces.json"
+  },
+  "devDependencies": {
+    "@prismshadow/penguin-core": "workspace:*"
+  }
+}
